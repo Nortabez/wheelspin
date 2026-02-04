@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wheel Spin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="sounds/sounds.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --surface2: #0f3460;
+    --text: #e4e4e4;
+    --text-muted: #8892a4;
+    --accent: #e94560;
+    --accent-hover: #ff6b81;
+  }
+
+  body {
+    font-family: 'Nunito', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  header h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: linear-gradient(135deg, #e94560, #f5a623, #50e3c2, #4a90d9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .app {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Wheel Panel ── */
+  .wheel-panel {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: center;
+    justify-items: center;
+    min-width: 0;
+    gap: 8px;
+    padding: 8px;
+    overflow: hidden;
+  }
+  .wheel-panel.cols-2 { grid-template-columns: 1fr 1fr; }
+  .wheel-panel.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .wheel-cell {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .wheel-cell-title {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    flex-shrink: 0;
+  }
+  .wheel-cell-inner {
+    position: relative;
+  }
+
+  .wheel-canvas {
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    filter: drop-shadow(0 0 30px rgba(233,69,96,0.15));
+    transition: filter 0.3s;
+  }
+  .wheel-canvas:hover { filter: drop-shadow(0 0 40px rgba(233,69,96,0.3)); }
+
+  .pointer {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    border-top: 38px solid var(--accent);
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+    z-index: 10;
+    transition: transform 0.05s;
+  }
+  .pointer.tick { transform: translateX(-50%) rotate(5deg); }
+
+  .center-btn {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 170px; height: 170px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    border: 7px solid rgba(255,255,255,0.2);
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.2s, transform 0.2s;
+    text-transform: uppercase;
+  }
+  .center-btn:hover { background: var(--accent-hover); transform: translate(-50%, -50%) scale(1.08); }
+  .center-btn:active { transform: translate(-50%, -50%) scale(0.96); }
+  .center-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: translate(-50%, -50%); }
+
+  /* ── Wheel Toast (inline winner overlay) ── */
+  .wheel-toast {
+    position: absolute;
+    bottom: 12%;
+    left: 50%;
+    transform: translateX(-50%) scale(0.8);
+    background: rgba(22,33,62,0.92);
+    border: 1px solid rgba(233,69,96,0.4);
+    border-radius: 14px;
+    padding: 14px 28px;
+    text-align: center;
+    z-index: 20;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s, transform 0.35s;
+    backdrop-filter: blur(6px);
+    max-width: 80%;
+  }
+  .wheel-toast.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) scale(1);
+    cursor: pointer;
+  }
+  .wheel-toast-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .wheel-toast-name {
+    font-size: 1.3rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #e94560, #f5a623);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    word-break: break-word;
+  }
+
+  /* Sub-wheel cells (dynamically added) */
+  .wheel-cell.sub-cell .wheel-canvas,
+  .wheel-cell.sub-cell .pointer,
+  .wheel-cell.sub-cell .center-btn { pointer-events: none; }
+  .wheel-cell.sub-cell {
+    animation: cellAppear 0.4s ease-out;
+  }
+  @keyframes cellAppear {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── Wheel Selector ── */
+  .wheel-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: var(--surface2);
+  }
+  .wheel-selector select {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 8px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    outline: none;
+  }
+  .wheel-selector button {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+  }
+  .wheel-selector button:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 340px;
+    min-width: 260px;
+    max-width: 60vw;
+    background: var(--surface);
+    border-left: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+  .sidebar-resize {
+    position: absolute;
+    left: -4px;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: col-resize;
+    z-index: 20;
+  }
+  .sidebar-resize:hover,
+  .sidebar-resize.active {
+    background: rgba(233,69,96,0.3);
+  }
+
+  /* Tabs */
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .sidebar-tabs button {
+    flex: 1;
+    padding: 12px 0;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .sidebar-tabs button.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .tab-content.active { display: flex; }
+
+  /* Entries tab */
+  .sidebar-header {
+    padding: 12px 16px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar-header h2 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .entry-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--surface2);
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  textarea#namesInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 12px 16px;
+    resize: none;
+    line-height: 1.7;
+  }
+  textarea#namesInput::placeholder { color: var(--text-muted); }
+
+  .sidebar-actions {
+    padding: 10px 16px;
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .sidebar-actions button {
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.78rem;
+    transition: background 0.2s, opacity 0.2s;
+  }
+  .btn-shuffle { background: var(--surface2); color: var(--text); }
+  .btn-shuffle:hover { opacity: 0.85; }
+  .btn-reset { background: rgba(233,69,96,0.15); color: var(--accent); }
+  .btn-reset:hover { background: rgba(233,69,96,0.25); }
+
+  /* Configure tab */
+  .config-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+  }
+  .config-panel::-webkit-scrollbar { width: 6px; }
+  .config-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+  .config-section {
+    margin-bottom: 20px;
+  }
+  .config-section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .config-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    margin-bottom: 6px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 8px;
+  }
+  .config-entry-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .config-entry-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .config-entry-row-label {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    width: 46px;
+    flex-shrink: 0;
+  }
+  .config-entry select {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 6px;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.75rem;
+    outline: none;
+    cursor: pointer;
+  }
+  .config-entry select:focus { border-color: var(--accent); }
+  .vol-slider {
+    width: 60px;
+    flex-shrink: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .vol-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .fs-slider {
+    flex: 1;
+    min-width: 60px;
+    accent-color: #50e3c2;
+    cursor: pointer;
+  }
+  .fs-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .preview-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+  .preview-btn:hover { color: var(--accent); }
+
+  /* ── Winner Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 48px 56px;
+    text-align: center;
+    animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 420px;
+  }
+  @keyframes modalPop {
+    from { opacity: 0; transform: scale(0.7) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal .winner-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .modal .winner-name {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 28px;
+    background: linear-gradient(135deg, #e94560, #f5a623);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    word-break: break-word;
+  }
+  .modal-buttons { display: flex; gap: 10px; justify-content: center; }
+  .modal-buttons button {
+    padding: 10px 24px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.88rem;
+    transition: background 0.2s;
+  }
+  .btn-close-modal { background: var(--surface2); color: var(--text); }
+  .btn-close-modal:hover { background: #1a4a8a; }
+
+  /* ── Action Modal (Add/Remove Entry) ── */
+  .action-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .action-overlay.show { display: flex; }
+  .action-modal {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 36px 44px;
+    text-align: center;
+    animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 420px;
+    min-width: 300px;
+  }
+  .action-modal h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .action-modal p {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .action-modal input[type="text"],
+  .action-modal select {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    outline: none;
+  }
+  .action-modal input[type="text"]:focus,
+  .action-modal select:focus { border-color: var(--accent); }
+  .action-modal .action-buttons { display: flex; gap: 10px; justify-content: center; }
+  .action-modal .action-buttons button {
+    padding: 10px 24px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.88rem;
+    transition: background 0.2s;
+  }
+  .action-modal .btn-action-confirm { background: var(--accent); color: #fff; }
+  .action-modal .btn-action-confirm:hover { background: var(--accent-hover); }
+  .action-modal .btn-action-cancel { background: var(--surface2); color: var(--text); }
+  .action-modal .btn-action-cancel:hover { background: #1a4a8a; }
+
+  /* ── Confetti ── */
+  .confetti-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 200;
+    overflow: hidden;
+  }
+  .confetti-piece {
+    position: absolute;
+    width: 8px;
+    height: 14px;
+    will-change: transform;
+    animation: confettiFall linear forwards;
+  }
+  @keyframes confettiFall {
+    0%   { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header><h1>WHEEL SPIN</h1></header>
+
+<div class="app" id="app">
+  <div class="wheel-panel" id="wheelPanel">
+    <div class="wheel-cell" id="mainCell">
+      <div class="wheel-cell-inner">
+        <div class="pointer" id="mainPointer"></div>
+        <canvas class="wheel-canvas" id="mainCanvas"></canvas>
+        <button class="center-btn" id="spinBtn">SPIN</button>
+        <div class="wheel-toast" id="wheelToast">
+          <div class="wheel-toast-label"></div>
+          <div class="wheel-toast-name"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-resize" id="sidebarResize"></div>
+    <div class="wheel-selector">
+      <select id="wheelSelect" title="Select wheel"></select>
+      <button id="addWheelBtn" title="Add wheel">+</button>
+      <button id="renameWheelBtn" title="Rename wheel">&#9998;</button>
+      <button id="deleteWheelBtn" title="Delete wheel">&#128465;</button>
+    </div>
+    <div class="sidebar-tabs">
+      <button class="active" data-tab="entries">Entries</button>
+      <button data-tab="configure">Configure</button>
+    </div>
+
+    <!-- Entries tab -->
+    <div class="tab-content active" id="tab-entries">
+      <div class="sidebar-header">
+        <h2>Names</h2>
+        <span class="entry-count" id="entryCount">0</span>
+      </div>
+      <textarea id="namesInput" placeholder="Enter names, one per line" spellcheck="false"></textarea>
+      <div class="sidebar-actions">
+        <button class="btn-shuffle" id="shuffleBtn">Shuffle</button>
+        <button class="btn-reset" id="resetBtn">Clear</button>
+      </div>
+    </div>
+
+    <!-- Configure tab -->
+    <div class="tab-content" id="tab-configure">
+      <div class="config-panel" id="configPanel">
+        <!-- Default sound -->
+        <div class="config-section">
+          <div class="config-section-title">Default Win Sound</div>
+          <div style="display:flex;gap:6px;align-items:center;padding:4px 0;">
+            <select id="defaultSoundSel" style="flex:1;min-width:0;" title="Default sound for all entries without a custom sound">
+              <option value="">Procedural jingle</option>
+            </select>
+            <input type="range" min="0" max="100" class="vol-slider" id="defaultVolSlider" title="Default volume">
+            <span class="vol-label" id="defaultVolLabel">100%</span>
+            <button class="preview-btn" id="defaultSoundPreview" title="Preview sound">&#9654;</button>
+          </div>
+        </div>
+
+        <!-- Default font size -->
+        <div class="config-section">
+          <div class="config-section-title">Default Font Size</div>
+          <div style="display:flex;gap:6px;align-items:center;padding:4px 0;">
+            <input type="range" min="6" max="72" value="18" class="vol-slider" style="width:100px;" id="defaultFontSlider" title="Default font size">
+            <span class="vol-label" id="defaultFontLabel">18px</span>
+          </div>
+        </div>
+
+        <!-- Entry sounds + sub-wheel assignments -->
+        <div class="config-section">
+          <div class="config-section-title">Entry Sounds &amp; Triggers</div>
+          <div id="entryConfigList"></div>
+        </div>
+
+        <!-- Sub-wheel triggers are now assigned via per-entry dropdown above -->
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="winner-label" id="winnerLabel">Winner</div>
+    <div class="winner-name" id="winnerName"></div>
+    <div class="modal-buttons">
+      <button class="btn-close-modal" id="closeModal">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="action-overlay" id="actionModal">
+  <div class="action-modal">
+    <h3 id="actionTitle"></h3>
+    <p id="actionDesc"></p>
+    <div id="actionBody"></div>
+    <div class="action-buttons">
+      <button class="btn-action-confirm" id="actionConfirm">Confirm</button>
+      <button class="btn-action-cancel" id="actionCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="confetti-container" id="confetti"></div>
+
+<script>
+(() => {
+  const COLORS = [
+    '#E74856','#F5A623','#47B04B','#557FC3','#F9D423',
+    '#D64DB0','#43B0A8','#EF6C35'
+  ];
+  const TWO_PI = Math.PI * 2;
+
+  // ── Persisted Config ──
+  const STORAGE_KEY = 'wheelSpinConfig';
+  const DEFAULT_ENTRIES = 'Add a game\nBloon\'s Multiplayer\nDark Pictures\nDota\nDota Custom Game\nDrink\nHearthstone\nHeathstone\nLegionTD\nLuke\'s Choice\nMechabellum\nMinecraft Minigame\nMinecraft Mod\nSharp\'s Choice\nSpin Again\nStarcraft\nStarcraft Custom\nVintage Story\nZeeb\'s Choice\nAdd a game\nRemove a game';
+
+  function defaultWheelConfig(entries) {
+    return { title: 'Main Wheel', entries: entries || '', sounds: {}, volumes: {}, defaultSound: '', defaultVolume: 100, defaultFontSize: 18, fontSizes: {}, triggers: {}, entryWeights: {} };
+  }
+
+  let config = { activeWheelId: null, wheels: {} };
+  let selectedWheelId = null;
+
+  function selectedWheelConfig() { return config.wheels[selectedWheelId]; }
+
+  function ensureWheelDefaults(wc) {
+    if (!wc.sounds) wc.sounds = {};
+    if (!wc.volumes) wc.volumes = {};
+    if (!wc.triggers) wc.triggers = {};
+    if (!wc.fontSizes) wc.fontSizes = {};
+    if (!wc.entryWeights) wc.entryWeights = {};
+    if (wc.defaultSound == null) wc.defaultSound = '';
+    if (wc.defaultVolume == null) wc.defaultVolume = 100;
+    if (wc.defaultFontSize == null) wc.defaultFontSize = 18;
+    return wc;
+  }
+
+  function migrateConfig(saved) {
+    if (saved.wheels) {
+      for (const wc of Object.values(saved.wheels)) ensureWheelDefaults(wc);
+      return saved;
+    }
+    const mainId = 'wheel_main';
+    const migrated = { activeWheelId: mainId, wheels: {} };
+    migrated.wheels[mainId] = {
+      title: 'Main Wheel',
+      entries: saved.entries || DEFAULT_ENTRIES,
+      sounds: saved.sounds || {},
+      volumes: saved.volumes || {},
+      defaultSound: saved.defaultSound || '',
+      defaultVolume: saved.defaultVolume != null ? saved.defaultVolume : 100,
+      triggers: {},
+    };
+    if (saved.subWheels) {
+      for (const [id, sw] of Object.entries(saved.subWheels)) {
+        migrated.wheels[id] = { title: sw.title || id, entries: sw.entries || '', sounds: {}, volumes: {}, defaultSound: '', defaultVolume: 100, triggers: {} };
+      }
+    }
+    if (saved.triggers) migrated.wheels[mainId].triggers = { ...saved.triggers };
+    return migrated;
+  }
+
+  function saveConfig() {
+    const wc = selectedWheelConfig();
+    if (wc) wc.entries = textarea.value;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); } catch(e) {}
+  }
+
+  function loadConfig() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        config = migrateConfig(JSON.parse(raw));
+      } else {
+        const id = 'wheel_main';
+        config = { activeWheelId: id, wheels: {} };
+        config.wheels[id] = defaultWheelConfig(DEFAULT_ENTRIES);
+      }
+    } catch(e) {
+      const id = 'wheel_main';
+      config = { activeWheelId: id, wheels: {} };
+      config.wheels[id] = defaultWheelConfig(DEFAULT_ENTRIES);
+    }
+    selectedWheelId = config.activeWheelId;
+  }
+
+  // ── Sound manifest ──
+  // Loaded via <script src="sounds/sounds.js"> which sets window.SOUND_FILES
+  let availableSounds = Array.isArray(window.SOUND_FILES) ? window.SOUND_FILES : [];
+
+  // ── DOM ──
+  const spinBtn = document.getElementById('spinBtn');
+  const textarea = document.getElementById('namesInput');
+  const countEl = document.getElementById('entryCount');
+  const modal = document.getElementById('modal');
+  const winnerEl = document.getElementById('winnerName');
+  const winnerLabelEl = document.getElementById('winnerLabel');
+  const closeBtn = document.getElementById('closeModal');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const confettiContainer = document.getElementById('confetti');
+  const configPanel = document.getElementById('configPanel');
+  const entryConfigList = document.getElementById('entryConfigList');
+  const wheelSelect = document.getElementById('wheelSelect');
+
+  // ── Tabs ──
+  document.querySelectorAll('.sidebar-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.sidebar-tabs button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'configure') rebuildConfigUI();
+    });
+  });
+
+  // ── Audio Context ──
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playTick() {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = 1800 + Math.random() * 600;
+    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.06);
+  }
+
+  function playJingle(vol) {
+    const v = (vol != null ? vol : 1) * 0.12;
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const t = audioCtx.currentTime + i * 0.12;
+      gain.gain.setValueAtTime(v, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      osc.start(t);
+      osc.stop(t + 0.3);
+    });
+  }
+
+  function playCheer() {
+    const duration = 1.5;
+    const bufferSize = audioCtx.sampleRate * duration;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 0.5;
+    const gain = audioCtx.createGain();
+    const now = audioCtx.currentTime;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.15, now + 0.15);
+    gain.gain.setValueAtTime(0.15, now + 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    source.connect(bp); bp.connect(gain); gain.connect(audioCtx.destination);
+    source.start(now); source.stop(now + duration);
+  }
+
+  const soundCache = {};
+  function playSoundFile(file, vol) {
+    const path = 'sounds/' + file;
+    if (!soundCache[path]) soundCache[path] = new Audio(path);
+    const audio = soundCache[path];
+    audio.volume = vol != null ? vol : 1;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  }
+
+  function getVolume(name, wheelId) {
+    const wc = config.wheels[wheelId || config.activeWheelId];
+    if (!wc) return 1;
+    if (wc.volumes[name] != null) return wc.volumes[name] / 100;
+    return (wc.defaultVolume != null ? wc.defaultVolume : 100) / 100;
+  }
+
+  function playWinSound(name, wheelId) {
+    const wc = config.wheels[wheelId || config.activeWheelId];
+    if (!wc) return;
+    const vol = getVolume(name, wheelId);
+    const entryFile = wc.sounds[name];
+    if (entryFile) {
+      playSoundFile(entryFile, vol);
+    } else if (wc.defaultSound) {
+      playSoundFile(wc.defaultSound, vol);
+    } else {
+      playJingle(vol);
+    }
+    playCheer();
+  }
+
+  // ── Utility ──
+  function luma(hex) {
+    const c = hex.replace('#','');
+    return 0.2126*(parseInt(c.substring(0,2),16)/255) +
+           0.7152*(parseInt(c.substring(2,4),16)/255) +
+           0.0722*(parseInt(c.substring(4,6),16)/255);
+  }
+
+  function segmentAtAngle(segments, angle) {
+    const a = ((angle % TWO_PI) + TWO_PI) % TWO_PI;
+    for (let i = 0; i < segments.length; i++) if (a < segments[i].end) return i;
+    return segments.length - 1;
+  }
+
+  function cryptoRandom() {
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    return arr[0] / 0xFFFFFFFF;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // ── Wheel Context ──
+  // ═══════════════════════════════════════════════════════════════
+
+  function createWheel(canvasOrId, pointerOrId) {
+    const canvas = typeof canvasOrId === 'string' ? document.getElementById(canvasOrId) : canvasOrId;
+    const ctx = canvas.getContext('2d');
+    const pointerEl = typeof pointerOrId === 'string' ? document.getElementById(pointerOrId) : pointerOrId;
+    const w = {
+      canvas, ctx, pointerEl,
+      names: [], rotation: 0, spinning: false, animFrame: null,
+      cooldowns: new Map(),
+      offscreen: null, offCtx: null, cachedSegments: [], layoutDirty: true,
+      defaultFontSize: 18, fontSizes: {},  // set externally before draw
+    };
+
+    w.entryWeights = {};
+    w.getWeight = n => {
+      const base = w.entryWeights[n] != null ? w.entryWeights[n] : 1;
+      const cd = w.cooldowns.get(n);
+      return base * (cd ? cd.weight : 1);
+    };
+    w.invalidateLayout = () => { w.layoutDirty = true; };
+
+    w.rebuildLayout = () => {
+      if (!w.layoutDirty && w.cachedSegments.length === w.names.length) return;
+      w.layoutDirty = false;
+      const weights = w.names.map(n => w.getWeight(n));
+      const total = weights.reduce((a, b) => a + b, 0);
+      w.cachedSegments = [];
+      let cursor = 0;
+      for (let i = 0; i < w.names.length; i++) {
+        const arc = (weights[i] / total) * TWO_PI;
+        w.cachedSegments.push({ start: cursor, arc, end: cursor + arc });
+        cursor += arc;
+      }
+      const size = w.canvas.width;
+      if (!w.offscreen || w.offscreen.width !== size) {
+        w.offscreen = document.createElement('canvas');
+        w.offscreen.width = size; w.offscreen.height = size;
+        w.offCtx = w.offscreen.getContext('2d');
+      }
+      const oc = w.offCtx, cx = size/2, r = cx*0.92, maxLen = r*0.75;
+      const cssSize = size / devicePixelRatio;
+      const fontScale = cssSize / 500; // scale fonts proportionally to wheel size
+      oc.clearRect(0,0,size,size);
+      oc.save(); oc.translate(cx,cx);
+      for (let i = 0; i < w.names.length; i++) {
+        const seg = w.cachedSegments[i];
+        oc.beginPath(); oc.moveTo(0,0); oc.arc(0,0,r,seg.start,seg.end); oc.closePath();
+        oc.fillStyle = COLORS[i%COLORS.length]; oc.fill();
+        oc.strokeStyle = 'rgba(0,0,0,0.25)'; oc.lineWidth = 3*devicePixelRatio; oc.stroke();
+        oc.save(); oc.rotate(seg.start+seg.arc/2);
+        oc.textAlign = 'right'; oc.textBaseline = 'middle';
+        const baseFontSize = (w.fontSizes[w.names[i]] != null ? w.fontSizes[w.names[i]] : w.defaultFontSize) || 18;
+        let fs = Math.min(baseFontSize * devicePixelRatio * Math.min(fontScale, 1), seg.arc*r*0.45);
+        fs = Math.max(fs, 4*devicePixelRatio * Math.min(fontScale, 0.6));
+        oc.font = `600 ${fs}px "Nunito","Segoe UI",system-ui,sans-serif`;
+        let label = w.names[i];
+        while (oc.measureText(label).width > maxLen && label.length > 1) label = label.slice(0,-1);
+        if (label !== w.names[i]) label += '…';
+        oc.fillStyle = luma(COLORS[i%COLORS.length]) > 0.55 ? '#1a1a2e' : '#fff';
+        oc.shadowColor = 'rgba(0,0,0,0.35)'; oc.shadowBlur = 3*devicePixelRatio;
+        oc.fillText(label, r*0.93, 0);
+        oc.restore();
+      }
+      oc.beginPath(); oc.arc(0,0,r+2*devicePixelRatio,0,TWO_PI);
+      oc.strokeStyle = 'rgba(255,255,255,0.08)'; oc.lineWidth = 5*devicePixelRatio; oc.stroke();
+      oc.restore();
+    };
+
+    w.resizeCanvas = () => {
+      const cell = w.canvas.parentElement.parentElement; // .wheel-cell
+      const cellRect = cell.getBoundingClientRect();
+      // Account for title height
+      const titleEl = cell.querySelector('.wheel-cell-title');
+      const titleH = titleEl ? titleEl.getBoundingClientRect().height + 4 : 0;
+      const availW = cellRect.width;
+      const availH = cellRect.height - titleH;
+      const size = Math.max(Math.min(availW, availH), 50);
+      const inner = w.canvas.parentElement;
+      inner.style.width = size + 'px';
+      inner.style.height = size + 'px';
+      w.canvas.width = size*devicePixelRatio; w.canvas.height = size*devicePixelRatio;
+      // Scale pointer and center button proportionally to wheel size
+      const scale = Math.min(size / 500, 1); // 500px is our reference size, never scale up
+      const pEl = cell.querySelector('.pointer');
+      if (pEl) {
+        const bw = Math.round(18 * scale);
+        const bh = Math.round(38 * scale);
+        pEl.style.borderLeftWidth = bw + 'px';
+        pEl.style.borderRightWidth = bw + 'px';
+        pEl.style.borderTopWidth = bh + 'px';
+        pEl.style.top = -Math.round(bh * 0.47) + 'px';
+      }
+      const cBtn = cell.querySelector('.center-btn');
+      if (cBtn) {
+        const btnSize = Math.round(170 * scale);
+        const btnFont = Math.max(0.5, 1.5 * scale);
+        const btnBorder = Math.max(2, Math.round(7 * scale));
+        cBtn.style.width = btnSize + 'px';
+        cBtn.style.height = btnSize + 'px';
+        cBtn.style.fontSize = btnFont + 'rem';
+        cBtn.style.borderWidth = btnBorder + 'px';
+      }
+      w.invalidateLayout(); w.draw();
+    };
+
+    w.draw = () => {
+      const cw = w.canvas.width, ch = w.canvas.height, cx = cw/2, cy = ch/2;
+      w.ctx.clearRect(0,0,cw,ch);
+      if (w.names.length === 0) {
+        const r = cx*0.92;
+        w.ctx.save();
+        w.ctx.beginPath(); w.ctx.arc(cx,cy,r,0,TWO_PI);
+        w.ctx.fillStyle = '#1e2a45'; w.ctx.fill();
+        w.ctx.strokeStyle = 'rgba(233,69,96,0.3)'; w.ctx.lineWidth = 4*devicePixelRatio; w.ctx.stroke();
+        w.ctx.fillStyle = '#556';
+        w.ctx.font = `${16*devicePixelRatio}px "Nunito","Segoe UI",system-ui,sans-serif`;
+        w.ctx.textAlign = 'center'; w.ctx.textBaseline = 'middle';
+        w.ctx.fillText('No entries', cx, cy);
+        w.ctx.restore();
+        return;
+      }
+      w.rebuildLayout();
+      w.ctx.save(); w.ctx.translate(cx,cy); w.ctx.rotate(w.rotation);
+      w.ctx.drawImage(w.offscreen, -cx, -cy);
+      w.ctx.restore();
+    };
+
+    w.spin = (onFinish) => {
+      if (w.spinning || w.names.length < 2) return;
+      w.spinning = true;
+      w.rebuildLayout();
+      const segments = w.cachedSegments;
+      const landAngle = cryptoRandom() * TWO_PI;
+      const winnerIndex = segmentAtAngle(segments, landAngle);
+      const targetAngle = -Math.PI/2 - landAngle;
+      const minSpins = 6 + Math.floor(Math.random() * 5); // 6-10 revolutions
+      let adj = targetAngle;
+      while (adj <= w.rotation + minSpins * TWO_PI) adj += TWO_PI;
+      const startR = w.rotation, delta = adj - startR;
+      const dur = 9000 + Math.random()*3000, startT = performance.now(); // 9-12 seconds
+      const easePow = 5; // quintic easing — gold standard for wheel spinners
+      let lastSeg = -1;
+      function anim(now) {
+        const t = Math.min((now-startT)/dur, 1);
+        w.rotation = startR + delta * (1 - Math.pow(1-t, easePow));
+        const pa = (((-w.rotation - Math.PI/2) % TWO_PI) + TWO_PI) % TWO_PI;
+        const cs = segmentAtAngle(segments, pa);
+        if (cs !== lastSeg) {
+          lastSeg = cs; playTick();
+          w.pointerEl.classList.add('tick');
+          setTimeout(() => w.pointerEl.classList.remove('tick'), 50);
+        }
+        w.draw();
+        if (t < 1) w.animFrame = requestAnimationFrame(anim);
+        else { w.spinning = false; if (onFinish) onFinish(w.names[winnerIndex]); }
+      }
+      w.animFrame = requestAnimationFrame(anim);
+    };
+
+    return w;
+  }
+
+  const mainWheel = createWheel('mainCanvas', 'mainPointer');
+  const wheelPanel = document.getElementById('wheelPanel');
+  const mainCell = document.getElementById('mainCell');
+  let subWheelCells = []; // {element, wheel, wheelId}
+
+  function updateGridCols() {
+    const total = 1 + subWheelCells.length;
+    wheelPanel.classList.remove('cols-2', 'cols-3');
+    if (total >= 3) wheelPanel.classList.add('cols-3');
+    else if (total === 2) wheelPanel.classList.add('cols-2');
+  }
+
+  function createWheelCell(title) {
+    const cell = document.createElement('div');
+    cell.className = 'wheel-cell sub-cell';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'wheel-cell-title';
+    titleEl.textContent = title;
+    cell.appendChild(titleEl);
+
+    const inner = document.createElement('div');
+    inner.className = 'wheel-cell-inner';
+
+    const pointer = document.createElement('div');
+    pointer.className = 'pointer';
+    inner.appendChild(pointer);
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'wheel-canvas';
+    inner.appendChild(canvas);
+
+    const btn = document.createElement('button');
+    btn.className = 'center-btn';
+    btn.disabled = true;
+    btn.textContent = 'SUB';
+    inner.appendChild(btn);
+
+    cell.appendChild(inner);
+    wheelPanel.appendChild(cell);
+
+    const wheel = createWheel(canvas, pointer);
+    subWheelCells.push({ element: cell, wheel, titleEl });
+    updateGridCols();
+    return { cell, wheel };
+  }
+
+  function clearSubWheels() {
+    for (const sc of subWheelCells) {
+      if (sc.wheel.animFrame) cancelAnimationFrame(sc.wheel.animFrame);
+      sc.element.remove();
+    }
+    subWheelCells = [];
+    updateGridCols();
+  }
+
+  function resizeAllWheels() {
+    mainWheel.resizeCanvas();
+    for (const sc of subWheelCells) sc.wheel.resizeCanvas();
+  }
+
+  // ── Cooldown ──
+  const CD_FLOOR = 0.2, CD_RECOVERY = 0.16;
+  function applyCD(name) { mainWheel.cooldowns.set(name, { weight: CD_FLOOR }); }
+  function advanceCD(exclude) {
+    for (const [n, cd] of mainWheel.cooldowns) {
+      if (n === exclude) continue;
+      cd.weight = Math.min(1, cd.weight + CD_RECOVERY);
+      if (cd.weight >= 1) mainWheel.cooldowns.delete(n);
+    }
+  }
+
+  // ── Names ──
+  function getNames() { return textarea.value.split('\n').map(s => s.trim()).filter(Boolean); }
+
+  function syncWheelConfig(wheel, wc) {
+    wheel.defaultFontSize = wc.defaultFontSize != null ? wc.defaultFontSize : 18;
+    wheel.fontSizes = wc.fontSizes || {};
+    wheel.entryWeights = wc.entryWeights || {};
+  }
+
+  function updateNames() {
+    const names = getNames();
+    countEl.textContent = names.length;
+    if (selectedWheelId === config.activeWheelId) {
+      const wc = selectedWheelConfig();
+      if (wc) syncWheelConfig(mainWheel, wc);
+      mainWheel.names = names;
+      mainWheel.invalidateLayout();
+      mainWheel.draw();
+    }
+    saveConfig();
+  }
+
+  // ── Wheel Selector ──
+  function rebuildWheelSelector() {
+    wheelSelect.innerHTML = '';
+    for (const [id, wc] of Object.entries(config.wheels)) {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = wc.title || id;
+      if (id === selectedWheelId) opt.selected = true;
+      wheelSelect.appendChild(opt);
+    }
+  }
+
+  function switchToWheel(wheelId) {
+    const oldWc = selectedWheelConfig();
+    if (oldWc) oldWc.entries = textarea.value;
+
+    selectedWheelId = wheelId;
+    config.activeWheelId = wheelId;
+
+    const wc = selectedWheelConfig();
+    textarea.value = wc ? wc.entries || '' : '';
+    const names = getNames();
+    if (wc) syncWheelConfig(mainWheel, wc);
+    mainWheel.names = names;
+    mainWheel.cooldowns.clear();
+    mainWheel.rotation = 0;
+    mainWheel.invalidateLayout();
+    mainWheel.draw();
+    countEl.textContent = names.length;
+    rebuildConfigUI();
+    saveConfig();
+  }
+
+  wheelSelect.addEventListener('change', () => switchToWheel(wheelSelect.value));
+
+  document.getElementById('addWheelBtn').addEventListener('click', () => {
+    const id = 'wheel_' + Date.now();
+    config.wheels[id] = defaultWheelConfig('');
+    config.wheels[id].title = 'New Wheel';
+    saveConfig();
+    rebuildWheelSelector();
+    switchToWheel(id);
+  });
+
+  document.getElementById('renameWheelBtn').addEventListener('click', () => {
+    const wc = selectedWheelConfig();
+    if (!wc) return;
+    const newTitle = prompt('Wheel name:', wc.title);
+    if (newTitle != null && newTitle.trim()) {
+      wc.title = newTitle.trim();
+      saveConfig();
+      rebuildWheelSelector();
+    }
+  });
+
+  document.getElementById('deleteWheelBtn').addEventListener('click', () => {
+    const ids = Object.keys(config.wheels);
+    if (ids.length <= 1) return;
+    const wc = selectedWheelConfig();
+    if (!confirm('Delete "' + (wc ? wc.title : '') + '"?')) return;
+    const deadId = selectedWheelId;
+    delete config.wheels[deadId];
+    for (const w of Object.values(config.wheels)) {
+      for (const [entry, targetId] of Object.entries(w.triggers)) {
+        if (targetId === deadId) delete w.triggers[entry];
+      }
+    }
+    const remaining = Object.keys(config.wheels)[0];
+    config.activeWheelId = remaining;
+    saveConfig();
+    rebuildWheelSelector();
+    switchToWheel(remaining);
+  });
+
+  // ── Config UI ──
+  function rebuildConfigUI() {
+    rebuildDefaultSound();
+    rebuildDefaultFont();
+    rebuildEntryConfig();
+  }
+
+  function rebuildDefaultSound() {
+    const wc = selectedWheelConfig();
+    if (!wc) return;
+    const sel = document.getElementById('defaultSoundSel');
+    const prevBtn = document.getElementById('defaultSoundPreview');
+    const volSlider = document.getElementById('defaultVolSlider');
+    const volLabel = document.getElementById('defaultVolLabel');
+    sel.length = 1;
+    availableSounds.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f; opt.textContent = f.replace(/\.[^.]+$/, '');
+      if (wc.defaultSound === f) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = () => { wc.defaultSound = sel.value; saveConfig(); };
+    volSlider.value = wc.defaultVolume != null ? wc.defaultVolume : 100;
+    volLabel.textContent = volSlider.value + '%';
+    volSlider.oninput = () => {
+      volLabel.textContent = volSlider.value + '%';
+      wc.defaultVolume = parseInt(volSlider.value);
+      saveConfig();
+    };
+    prevBtn.onclick = () => {
+      const v = parseInt(volSlider.value) / 100;
+      if (sel.value) { playSoundFile(sel.value, v); }
+      else { playJingle(v); }
+    };
+  }
+
+  function rebuildDefaultFont() {
+    const wc = selectedWheelConfig();
+    if (!wc) return;
+    const slider = document.getElementById('defaultFontSlider');
+    const label = document.getElementById('defaultFontLabel');
+    slider.value = wc.defaultFontSize != null ? wc.defaultFontSize : 18;
+    label.textContent = slider.value + 'px';
+    slider.oninput = () => {
+      label.textContent = slider.value + 'px';
+      wc.defaultFontSize = parseInt(slider.value);
+      saveConfig();
+      if (selectedWheelId === config.activeWheelId) {
+        mainWheel.invalidateLayout();
+        mainWheel.draw();
+      }
+    };
+  }
+
+  function rebuildEntryConfig() {
+    const wc = selectedWheelConfig();
+    if (!wc) return;
+    const names = getNames();
+    entryConfigList.innerHTML = '';
+    const otherWheels = Object.entries(config.wheels).filter(([id]) => id !== selectedWheelId);
+
+    names.forEach(name => {
+      const row = document.createElement('div');
+      row.className = 'config-entry';
+
+      const label = document.createElement('span');
+      label.className = 'config-entry-name';
+      label.textContent = name;
+      label.title = name;
+
+      // sound dropdown
+      const soundSel = document.createElement('select');
+      soundSel.title = 'Win sound';
+      const noneOpt = document.createElement('option');
+      noneOpt.value = ''; noneOpt.textContent = 'Default';
+      soundSel.appendChild(noneOpt);
+      availableSounds.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f; opt.textContent = f.replace(/\.[^.]+$/, '');
+        if (wc.sounds[name] === f) opt.selected = true;
+        soundSel.appendChild(opt);
+      });
+      soundSel.addEventListener('change', () => {
+        if (soundSel.value) wc.sounds[name] = soundSel.value;
+        else delete wc.sounds[name];
+        saveConfig();
+      });
+
+      // volume slider
+      const vol = document.createElement('input');
+      vol.type = 'range'; vol.min = 0; vol.max = 100;
+      vol.className = 'vol-slider';
+      vol.value = wc.volumes[name] != null ? wc.volumes[name] : (wc.defaultVolume != null ? wc.defaultVolume : 100);
+      vol.title = 'Volume';
+      const volLabel = document.createElement('span');
+      volLabel.className = 'vol-label';
+      volLabel.textContent = vol.value + '%';
+      vol.addEventListener('input', () => {
+        volLabel.textContent = vol.value + '%';
+        wc.volumes[name] = parseInt(vol.value);
+        saveConfig();
+      });
+
+      // preview button
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'preview-btn';
+      prevBtn.textContent = '\u25B6';
+      prevBtn.title = 'Preview sound';
+      prevBtn.addEventListener('click', () => {
+        const file = soundSel.value || wc.defaultSound;
+        if (file) { playSoundFile(file, parseInt(vol.value) / 100); }
+        else { playJingle(parseInt(vol.value) / 100); }
+      });
+
+      // font size: default/custom toggle + slider
+      const hasCustomFont = wc.fontSizes[name] != null;
+      const fsSel = document.createElement('select');
+      fsSel.title = 'Font size mode';
+      const fsOptDef = document.createElement('option');
+      fsOptDef.value = 'default'; fsOptDef.textContent = 'Default';
+      const fsOptCust = document.createElement('option');
+      fsOptCust.value = 'custom'; fsOptCust.textContent = 'Custom';
+      if (hasCustomFont) fsOptCust.selected = true;
+      fsSel.appendChild(fsOptDef);
+      fsSel.appendChild(fsOptCust);
+
+      const fs = document.createElement('input');
+      fs.type = 'range'; fs.min = 6; fs.max = 72;
+      fs.className = 'fs-slider';
+      fs.value = hasCustomFont ? wc.fontSizes[name] : (wc.defaultFontSize != null ? wc.defaultFontSize : 18);
+      fs.title = 'Font size';
+      const fsLabel = document.createElement('span');
+      fsLabel.className = 'fs-label';
+      fsLabel.textContent = fs.value + 'px';
+
+      // Hide slider when default
+      fs.style.display = hasCustomFont ? '' : 'none';
+      fsLabel.style.display = hasCustomFont ? '' : 'none';
+
+      fsSel.addEventListener('change', () => {
+        if (fsSel.value === 'custom') {
+          fs.style.display = ''; fsLabel.style.display = '';
+          wc.fontSizes[name] = parseInt(fs.value);
+        } else {
+          fs.style.display = 'none'; fsLabel.style.display = 'none';
+          delete wc.fontSizes[name];
+        }
+        saveConfig();
+        if (selectedWheelId === config.activeWheelId) {
+          mainWheel.invalidateLayout();
+          mainWheel.draw();
+        }
+      });
+
+      fs.addEventListener('input', () => {
+        fsLabel.textContent = fs.value + 'px';
+        wc.fontSizes[name] = parseInt(fs.value);
+        saveConfig();
+        if (selectedWheelId === config.activeWheelId) {
+          mainWheel.invalidateLayout();
+          mainWheel.draw();
+        }
+      });
+
+      // trigger dropdown (actions + sub-wheels)
+      const swSel = document.createElement('select');
+      swSel.title = 'Trigger';
+      const swNone = document.createElement('option');
+      swNone.value = ''; swNone.textContent = 'No trigger';
+      swSel.appendChild(swNone);
+
+      // Action triggers
+      const actGroup = document.createElement('optgroup');
+      actGroup.label = 'Actions';
+      [['__add_entry', 'Add Entry'], ['__remove_entry', 'Remove Entry'], ['__spin_again', 'Spin Again']].forEach(([val, lbl]) => {
+        const opt = document.createElement('option');
+        opt.value = val; opt.textContent = lbl;
+        if (wc.triggers[name] === val) opt.selected = true;
+        actGroup.appendChild(opt);
+      });
+      swSel.appendChild(actGroup);
+
+      // Sub-wheel triggers
+      if (otherWheels.length) {
+        const wGroup = document.createElement('optgroup');
+        wGroup.label = 'Sub-Wheels';
+        otherWheels.forEach(([id, other]) => {
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = other.title || id;
+          if (wc.triggers[name] === id) opt.selected = true;
+          wGroup.appendChild(opt);
+        });
+        swSel.appendChild(wGroup);
+      }
+
+      swSel.addEventListener('change', () => {
+        if (swSel.value) wc.triggers[name] = swSel.value;
+        else delete wc.triggers[name];
+        saveConfig();
+      });
+
+      // Helper to build a labeled row
+      function makeRow(labelText, ...children) {
+        const r = document.createElement('div');
+        r.className = 'config-entry-row';
+        const lbl = document.createElement('span');
+        lbl.className = 'config-entry-row-label';
+        lbl.textContent = labelText;
+        r.appendChild(lbl);
+        children.forEach(c => r.appendChild(c));
+        return r;
+      }
+
+      // weight slider
+      const wt = document.createElement('input');
+      wt.type = 'range'; wt.min = 1; wt.max = 10; wt.step = 1;
+      wt.className = 'vol-slider';
+      wt.value = wc.entryWeights[name] != null ? wc.entryWeights[name] : 1;
+      wt.title = 'Weight (chance multiplier)';
+      const wtLabel = document.createElement('span');
+      wtLabel.className = 'vol-label';
+      wtLabel.textContent = wt.value + 'x';
+      wt.addEventListener('input', () => {
+        wtLabel.textContent = wt.value + 'x';
+        const v = parseInt(wt.value);
+        if (v === 1) delete wc.entryWeights[name];
+        else wc.entryWeights[name] = v;
+        saveConfig();
+        if (selectedWheelId === config.activeWheelId) {
+          mainWheel.entryWeights = wc.entryWeights;
+          mainWheel.invalidateLayout();
+          mainWheel.draw();
+        }
+      });
+
+      row.appendChild(label);
+      row.appendChild(makeRow('Sound', soundSel, vol, volLabel, prevBtn));
+      row.appendChild(makeRow('Font', fsSel, fs, fsLabel));
+      row.appendChild(makeRow('Weight', wt, wtLabel));
+      row.appendChild(makeRow('Trigger', swSel));
+      entryConfigList.appendChild(row);
+    });
+  }
+
+  // ── Action Modal ──
+  const actionOverlay = document.getElementById('actionModal');
+  const actionTitle = document.getElementById('actionTitle');
+  const actionDesc = document.getElementById('actionDesc');
+  const actionBody = document.getElementById('actionBody');
+  const actionConfirm = document.getElementById('actionConfirm');
+  const actionCancel = document.getElementById('actionCancel');
+  let actionCleanup = null;
+
+  function showActionModal(title, desc, bodyHTML, onConfirm, onCancel) {
+    actionTitle.textContent = title;
+    actionDesc.textContent = desc;
+    actionBody.innerHTML = bodyHTML;
+    actionOverlay.classList.add('show');
+    if (actionCleanup) actionCleanup();
+    const confirmHandler = () => {
+      actionOverlay.classList.remove('show');
+      cleanup();
+      if (onConfirm) onConfirm();
+    };
+    const cancelHandler = () => {
+      actionOverlay.classList.remove('show');
+      cleanup();
+      if (onCancel) onCancel();
+    };
+    function cleanup() {
+      actionConfirm.removeEventListener('click', confirmHandler);
+      actionCancel.removeEventListener('click', cancelHandler);
+      actionCleanup = null;
+    }
+    actionConfirm.addEventListener('click', confirmHandler);
+    actionCancel.addEventListener('click', cancelHandler);
+    actionCleanup = cleanup;
+    // Focus the first input/select if present
+    const focusEl = actionBody.querySelector('input, select');
+    if (focusEl) setTimeout(() => focusEl.focus(), 100);
+  }
+
+  function handleAddEntry(wheelId) {
+    showActionModal(
+      'Add an Entry',
+      'You must add a new entry to the wheel!',
+      '<input type="text" id="actionInput" placeholder="Enter new name..." />',
+      () => {
+        const input = document.getElementById('actionInput');
+        const val = input ? input.value.trim() : '';
+        if (!val) return;
+        const wc = config.wheels[wheelId];
+        if (!wc) return;
+        wc.entries = wc.entries ? wc.entries + '\n' + val : val;
+        if (wheelId === selectedWheelId) {
+          textarea.value = wc.entries;
+          updateNames();
+        } else {
+          saveConfig();
+        }
+      }
+    );
+    // Allow Enter key to confirm
+    setTimeout(() => {
+      const input = document.getElementById('actionInput');
+      if (input) input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') actionConfirm.click();
+      });
+    }, 50);
+  }
+
+  function handleRemoveEntry(wheelId) {
+    const wc = config.wheels[wheelId];
+    if (!wc) return;
+    const entries = (wc.entries || '').split('\n').map(s => s.trim()).filter(Boolean);
+    if (entries.length === 0) return;
+    const options = entries.map(e => `<option value="${e.replace(/"/g, '&quot;')}">${e}</option>`).join('');
+    showActionModal(
+      'Remove an Entry',
+      'You must remove an entry from the wheel!',
+      `<select id="actionSelect">${options}</select>`,
+      () => {
+        const sel = document.getElementById('actionSelect');
+        const val = sel ? sel.value : '';
+        if (!val) return;
+        // Remove first occurrence of the entry
+        const lines = (wc.entries || '').split('\n');
+        let removed = false;
+        const newLines = lines.filter(l => {
+          if (!removed && l.trim() === val) { removed = true; return false; }
+          return true;
+        });
+        wc.entries = newLines.join('\n');
+        // Clean up sound/volume/trigger/fontSize refs for this entry if it no longer exists
+        const remaining = newLines.map(s => s.trim()).filter(Boolean);
+        if (!remaining.includes(val)) {
+          delete wc.sounds[val];
+          delete wc.volumes[val];
+          delete wc.triggers[val];
+          delete wc.fontSizes[val];
+          delete wc.entryWeights[val];
+        }
+        if (wheelId === selectedWheelId) {
+          textarea.value = wc.entries;
+          updateNames();
+        } else {
+          saveConfig();
+        }
+      }
+    );
+  }
+
+  function handleSpinAgain(winner, wheelId) {
+    // Play the win sound for the spin-again entry, then re-spin
+    playWinSound(winner, wheelId);
+    showToast(winner, 'Spin Again!');
+    startConfetti();
+    setTimeout(() => {
+      hideToast();
+      stopConfetti();
+      doMainSpin();
+    }, 1500);
+  }
+
+  // ── Main Spin ──
+  function doMainSpin() {
+    if (mainWheel.spinning || mainWheel.names.length < 2) return;
+    clearSubWheels();
+    resizeAllWheels();
+    spinBtn.disabled = true;
+    const wheelId = config.activeWheelId;
+    mainWheel.spin((winner) => {
+      spinBtn.disabled = false;
+      advanceCD(winner);
+      applyCD(winner);
+      mainWheel.invalidateLayout();
+
+      const wc = config.wheels[wheelId];
+      const trigger = wc && wc.triggers[winner];
+
+      if (trigger === '__add_entry') {
+        playWinSound(winner, wheelId);
+        showToast(winner, 'Add Entry!');
+        startConfetti();
+        setTimeout(() => { hideToast(); stopConfetti(); handleAddEntry(wheelId); }, 1200);
+      } else if (trigger === '__remove_entry') {
+        playWinSound(winner, wheelId);
+        showToast(winner, 'Remove Entry!');
+        startConfetti();
+        setTimeout(() => { hideToast(); stopConfetti(); handleRemoveEntry(wheelId); }, 1200);
+      } else if (trigger === '__spin_again') {
+        handleSpinAgain(winner, wheelId);
+      } else if (trigger && config.wheels[trigger]) {
+        // Sub-wheel trigger
+        showToast(winner, 'Winner');
+        startConfetti();
+        playWinSound(winner, wheelId);
+        launchSubWheel(trigger, new Set([wheelId]));
+      } else {
+        showWinner(winner, 'Winner');
+        playWinSound(winner, wheelId);
+      }
+    });
+  }
+
+  // ── Sub-wheel ──
+  function launchSubWheel(wheelId, visited) {
+    if (!visited) visited = new Set();
+    if (visited.has(wheelId)) return;
+    visited.add(wheelId);
+
+    const wc = config.wheels[wheelId];
+    if (!wc) return;
+    const entries = (wc.entries || '').split('\n').map(s => s.trim()).filter(Boolean);
+    if (entries.length < 2) return;
+
+    const { cell, wheel } = createWheelCell(wc.title || wheelId);
+    syncWheelConfig(wheel, wc);
+    wheel.names = entries;
+    wheel.rotation = 0;
+    wheel.cooldowns.clear();
+    wheel.invalidateLayout();
+
+    // Let grid reflow, then resize and spin
+    setTimeout(() => {
+      resizeAllWheels();
+      wheel.draw();
+      setTimeout(() => {
+        wheel.spin((subWinner) => {
+          playWinSound(subWinner, wheelId);
+          const nextTriggerId = wc.triggers[subWinner];
+          const canChain = nextTriggerId && config.wheels[nextTriggerId] && !visited.has(nextTriggerId);
+          hideToast();
+          if (canChain) {
+            showToast(subWinner, wc.title || 'Sub-Wheel');
+            startConfetti();
+            setTimeout(() => {
+              hideToast();
+              stopConfetti();
+              launchSubWheel(nextTriggerId, visited);
+            }, 1200);
+          } else {
+            showWinner(subWinner, wc.title || 'Sub-Wheel');
+          }
+        });
+      }, 600);
+    }, 100);
+  }
+
+  // ── Wheel Toast (inline overlay for trigger wins) ──
+  const wheelToast = document.getElementById('wheelToast');
+  let toastTimer = null;
+
+  function showToast(name, label) {
+    wheelToast.querySelector('.wheel-toast-label').textContent = label || 'Winner';
+    wheelToast.querySelector('.wheel-toast-name').textContent = name;
+    wheelToast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 6000);
+  }
+  function hideToast() {
+    wheelToast.classList.remove('show');
+    clearTimeout(toastTimer);
+  }
+  wheelToast.addEventListener('click', hideToast);
+
+  // ── Winner Modal + Confetti ──
+  let modalCb = null;
+  function showWinner(name, label, onClose) {
+    winnerLabelEl.textContent = label || 'Winner';
+    winnerEl.textContent = name;
+    modal.classList.add('show');
+    modalCb = onClose || null;
+    startConfetti();
+  }
+
+  closeBtn.addEventListener('click', () => {
+    modal.classList.remove('show');
+    stopConfetti();
+    if (modalCb) { const cb = modalCb; modalCb = null; cb(); }
+  });
+
+  // ── Confetti ──
+  let confettiTimer = null;
+  function startConfetti() {
+    stopConfetti();
+    const frag = document.createDocumentFragment();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    for (let i = 0; i < 150; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      const x = Math.random()*vw, sy = -20-Math.random()*vh*0.5;
+      const ey = vh+40, drift = (Math.random()-0.5)*200, sp = (Math.random()-0.5)*1080;
+      const dur = 2+Math.random()*2, delay = Math.random()*0.8;
+      el.style.cssText = `left:${x}px;top:${sy}px;width:${6+Math.random()*6}px;height:${10+Math.random()*8}px;background:${COLORS[Math.floor(Math.random()*COLORS.length)]};border-radius:${Math.random()>0.5?'50%':'2px'};animation-duration:${dur}s;animation-delay:${delay}s;`;
+      el.animate([
+        {transform:'translate(0,0) rotate(0deg)'},
+        {transform:`translate(${drift}px,${ey-sy}px) rotate(${sp}deg)`}
+      ],{duration:dur*1000,delay:delay*1000,easing:'cubic-bezier(0.25,0,0.5,1)',fill:'forwards'});
+      frag.appendChild(el);
+    }
+    confettiContainer.appendChild(frag);
+    confettiTimer = setTimeout(stopConfetti, 5000);
+  }
+  function stopConfetti() {
+    if (confettiTimer) { clearTimeout(confettiTimer); confettiTimer = null; }
+    confettiContainer.innerHTML = '';
+  }
+
+  // ── Sidebar Actions ──
+  shuffleBtn.addEventListener('click', () => {
+    const arr = getNames();
+    for (let i = arr.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+    textarea.value = arr.join('\n');
+    updateNames();
+  });
+  resetBtn.addEventListener('click', () => { textarea.value = ''; updateNames(); });
+
+  // ── Sidebar Resize ──
+  const sidebar = document.getElementById('sidebar');
+  const resizeHandle = document.getElementById('sidebarResize');
+  let resizing = false;
+  resizeHandle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    resizing = true;
+    resizeHandle.classList.add('active');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!resizing) return;
+    const newWidth = window.innerWidth - e.clientX;
+    sidebar.style.width = Math.max(260, Math.min(newWidth, window.innerWidth * 0.6)) + 'px';
+    resizeAllWheels();
+  });
+  window.addEventListener('mouseup', () => {
+    if (!resizing) return;
+    resizing = false;
+    resizeHandle.classList.remove('active');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+
+  // ── Events ──
+  textarea.addEventListener('input', updateNames);
+  spinBtn.addEventListener('click', doMainSpin);
+  document.getElementById('mainCanvas').addEventListener('click', doMainSpin);
+  window.addEventListener('resize', resizeAllWheels);
+
+  // ── Init ──
+  loadConfig();
+  rebuildWheelSelector();
+  const initWc = selectedWheelConfig();
+  if (initWc) syncWheelConfig(mainWheel, initWc);
+  textarea.value = initWc ? initWc.entries || '' : DEFAULT_ENTRIES;
+  updateNames();
+  mainWheel.resizeCanvas();
+})();
+</script>
+</body>
+</html>

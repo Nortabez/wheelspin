@@ -1,0 +1,3808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wheel Spin — Multiplayer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="sounds/sounds.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --surface2: #0f3460;
+    --text: #e4e4e4;
+    --text-muted: #8892a4;
+    --accent: #e94560;
+    --accent-hover: #ff6b81;
+  }
+
+  body {
+    font-family: 'Nunito', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  header h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: linear-gradient(135deg, #e94560, #f5a623, #50e3c2, #4a90d9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .app {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Wheel Panel ── */
+  .wheel-panel {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: center;
+    justify-items: center;
+    min-width: 0;
+    gap: 8px;
+    padding: 8px;
+    overflow: hidden;
+  }
+  .wheel-panel.cols-2 { grid-template-columns: 1fr 1fr; }
+  .wheel-panel.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .wheel-cell {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .wheel-cell-title {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    flex-shrink: 0;
+  }
+  .wheel-cell-inner {
+    position: relative;
+  }
+
+  .wheel-canvas {
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    filter: drop-shadow(0 0 30px rgba(233,69,96,0.15));
+    transition: filter 0.3s;
+  }
+  .wheel-canvas:hover { filter: drop-shadow(0 0 40px rgba(233,69,96,0.3)); }
+
+  .pointer {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    border-top: 38px solid var(--accent);
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+    z-index: 10;
+    transition: transform 0.05s;
+  }
+  .pointer.tick { transform: translateX(-50%) rotate(5deg); }
+
+  .center-btn {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 170px; height: 170px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    border: 7px solid rgba(255,255,255,0.2);
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.2s, transform 0.2s;
+    text-transform: uppercase;
+  }
+  .center-btn:hover { background: var(--accent-hover); transform: translate(-50%, -50%) scale(1.08); }
+  .center-btn:active { transform: translate(-50%, -50%) scale(0.96); }
+  .center-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: translate(-50%, -50%); }
+
+  /* ── Wheel Toast (inline winner overlay) ── */
+  .wheel-toast {
+    position: absolute;
+    bottom: 12%;
+    left: 50%;
+    transform: translateX(-50%) scale(0.8);
+    background: rgba(22,33,62,0.92);
+    border: 1px solid rgba(233,69,96,0.4);
+    border-radius: 14px;
+    padding: 14px 28px;
+    text-align: center;
+    z-index: 20;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s, transform 0.35s;
+    backdrop-filter: blur(6px);
+    max-width: 80%;
+  }
+  .wheel-toast.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) scale(1);
+    cursor: pointer;
+  }
+  .wheel-toast-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .wheel-toast-name {
+    font-size: 1.3rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #e94560, #f5a623);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    word-break: break-word;
+  }
+
+  /* Sub-wheel cells (dynamically added) */
+  .wheel-cell.sub-cell .wheel-canvas,
+  .wheel-cell.sub-cell .pointer,
+  .wheel-cell.sub-cell .center-btn { pointer-events: none; }
+  .wheel-cell.sub-cell {
+    animation: cellAppear 0.4s ease-out;
+  }
+  @keyframes cellAppear {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── Wheel Selector ── */
+  .wheel-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: var(--surface2);
+  }
+  .wheel-selector select {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 8px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    outline: none;
+  }
+  .wheel-selector button {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+  }
+  .wheel-selector button:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 340px;
+    min-width: 260px;
+    max-width: 60vw;
+    background: var(--surface);
+    border-left: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+  .sidebar-resize {
+    position: absolute;
+    left: -4px;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: col-resize;
+    z-index: 20;
+  }
+  .sidebar-resize:hover,
+  .sidebar-resize.active {
+    background: rgba(233,69,96,0.3);
+  }
+
+  /* Tabs */
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .sidebar-tabs button {
+    flex: 1;
+    padding: 12px 0;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .sidebar-tabs button.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .tab-content.active { display: flex; }
+
+  /* Entries tab */
+  .sidebar-header {
+    padding: 12px 16px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar-header h2 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .entry-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--surface2);
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  textarea#namesInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 12px 16px;
+    resize: none;
+    line-height: 1.7;
+  }
+  textarea#namesInput::placeholder { color: var(--text-muted); }
+
+  .sidebar-actions {
+    padding: 10px 16px;
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .sidebar-actions button {
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.78rem;
+    transition: background 0.2s, opacity 0.2s;
+  }
+  .btn-shuffle { background: var(--surface2); color: var(--text); }
+  .btn-shuffle:hover { opacity: 0.85; }
+  .btn-reset { background: rgba(233,69,96,0.15); color: var(--accent); }
+  .btn-reset:hover { background: rgba(233,69,96,0.25); }
+
+  /* Configure tab */
+  .config-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+  }
+  .config-panel::-webkit-scrollbar { width: 6px; }
+  .config-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+  .config-section {
+    margin-bottom: 20px;
+  }
+  .config-section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .config-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    margin-bottom: 6px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 8px;
+  }
+  .config-entry-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .config-entry-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .config-entry-row-label {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    width: 46px;
+    flex-shrink: 0;
+  }
+  .config-entry select {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 6px;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.75rem;
+    outline: none;
+    cursor: pointer;
+  }
+  .config-entry select:focus { border-color: var(--accent); }
+  .vol-slider {
+    width: 60px;
+    flex-shrink: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .vol-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .fs-slider {
+    flex: 1;
+    min-width: 60px;
+    accent-color: #50e3c2;
+    cursor: pointer;
+  }
+  .fs-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .preview-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+  .preview-btn:hover { color: var(--accent); }
+
+  /* ── Winner Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 48px 56px;
+    text-align: center;
+    animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 420px;
+  }
+  @keyframes modalPop {
+    from { opacity: 0; transform: scale(0.7) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal .winner-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .modal .winner-name {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 28px;
+    background: linear-gradient(135deg, #e94560, #f5a623);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    word-break: break-word;
+  }
+  .modal-buttons { display: flex; gap: 10px; justify-content: center; }
+  .modal-buttons button {
+    padding: 10px 24px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.88rem;
+    transition: background 0.2s;
+  }
+  .btn-close-modal { background: var(--surface2); color: var(--text); }
+  .btn-close-modal:hover { background: #1a4a8a; }
+
+  /* ── Action Modal (Add/Remove Entry) ── */
+  .action-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .action-overlay.show { display: flex; }
+  .action-modal {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 36px 44px;
+    text-align: center;
+    animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 420px;
+    min-width: 300px;
+  }
+  .action-modal h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .action-modal p {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .action-modal input[type="text"],
+  .action-modal select {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    outline: none;
+  }
+  .action-modal input[type="text"]:focus,
+  .action-modal select:focus { border-color: var(--accent); }
+  .action-modal .action-buttons { display: flex; gap: 10px; justify-content: center; }
+  .action-modal .action-buttons button {
+    padding: 10px 24px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.88rem;
+    transition: background 0.2s;
+  }
+  .action-modal .btn-action-confirm { background: var(--accent); color: #fff; }
+  .action-modal .btn-action-confirm:hover { background: var(--accent-hover); }
+  .action-modal .btn-action-cancel { background: var(--surface2); color: var(--text); }
+  .action-modal .btn-action-cancel:hover { background: #1a4a8a; }
+
+  /* ── Confetti ── */
+  .confetti-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 200;
+    overflow: hidden;
+  }
+  .confetti-piece {
+    position: absolute;
+    width: 8px;
+    height: 14px;
+    will-change: transform;
+    animation: confettiFall linear forwards;
+  }
+  @keyframes confettiFall {
+    0%   { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ── Connection UI ── */
+  .connection-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.3s;
+  }
+  .connection-overlay.hidden { opacity: 0; pointer-events: none; }
+  .connection-box {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 32px 40px;
+    width: 400px;
+    max-width: 90vw;
+  }
+  .connection-box h2 {
+    text-align: center; margin-bottom: 20px;
+    background: linear-gradient(135deg, #e94560, #f5a623);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .conn-tabs { display: flex; gap: 0; margin-bottom: 16px; border-radius: 8px; overflow: hidden; }
+  .conn-tabs button {
+    flex: 1; padding: 10px; border: none; cursor: pointer;
+    background: var(--surface2); color: var(--text-muted);
+    font-family: inherit; font-weight: 600; font-size: 0.9rem;
+    transition: background 0.2s, color 0.2s;
+  }
+  .conn-tabs button.active { background: var(--accent); color: #fff; }
+  .conn-form { display: none; flex-direction: column; gap: 12px; }
+  .conn-form.active { display: flex; }
+  .conn-form input {
+    padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+    background: var(--bg); color: var(--text); font-family: inherit; font-size: 0.95rem;
+    outline: none;
+  }
+  .conn-form input:focus { border-color: var(--accent); }
+  .conn-form button.conn-submit {
+    padding: 12px; border-radius: 8px; border: none;
+    background: var(--accent); color: #fff; font-family: inherit;
+    font-weight: 700; font-size: 1rem; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .conn-form button.conn-submit:hover { background: var(--accent-hover); }
+  .conn-form button.conn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .conn-error { color: #e94560; font-size: 0.85rem; text-align: center; min-height: 1.2em; }
+
+  /* ── Status bar ── */
+  .status-bar {
+    display: none; align-items: center; gap: 10px;
+    padding: 6px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.8rem;
+  }
+  .status-bar.visible { display: flex; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #47B04B; flex-shrink: 0;
+  }
+  .status-dot.disconnected { background: #E74856; }
+  .status-dot.connecting { background: #F5A623; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .status-bar .status-text { flex: 1; color: var(--text-muted); }
+  .status-bar .status-name { font-weight: 700; color: var(--text); }
+  .status-bar .host-badge {
+    background: var(--accent); color: #fff; padding: 1px 8px;
+    border-radius: 4px; font-size: 0.7rem; font-weight: 700; letter-spacing: 1px;
+  }
+  .status-bar button {
+    padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);
+    background: transparent; color: var(--text-muted); cursor: pointer;
+    font-family: inherit; font-size: 0.75rem;
+  }
+  .status-bar button:hover { background: rgba(255,255,255,0.05); }
+
+  /* ── Spin initiator overlay ── */
+  .spin-initiator {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    background: rgba(22,33,62,0.9); color: var(--text);
+    padding: 6px 18px; border-radius: 20px;
+    font-size: 0.85rem; font-weight: 600; z-index: 20;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none;
+    white-space: nowrap;
+  }
+  .spin-initiator.show { opacity: 1; }
+
+  /* ── Scoreboard (inside left panel) ── */
+  .scoreboard {
+    display: none;
+  }
+  .scoreboard.visible { display: block; }
+  .scoreboard-title {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px;
+  }
+  .sb-player {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 0; font-size: 0.85rem;
+  }
+  .sb-player.disconnected { opacity: 0.35; }
+  .sb-avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.65rem; flex-shrink: 0;
+  }
+  .sb-name { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-badge {
+    padding: 1px 5px; border-radius: 3px;
+    font-size: 0.55rem; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .sb-badge.host { background: var(--accent); color: #fff; }
+  .sb-badge.you { background: var(--surface2); color: var(--text-muted); }
+  .sb-money { color: #47B04B; font-weight: 700; font-size: 0.85rem; white-space: nowrap; }
+
+  /* ── Ready-up / Betting overlay ── */
+  .ready-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.7);
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(3px);
+  }
+  .ready-overlay.show { display: flex; }
+  .ready-box {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 28px 36px;
+    width: 460px; max-width: 92vw;
+    text-align: center;
+  }
+  .ready-box h2 {
+    font-size: 1.2rem; margin-bottom: 6px; color: var(--text);
+  }
+  .ready-countdown {
+    font-size: 2.5rem; font-weight: 800;
+    color: var(--accent); margin: 10px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .ready-players {
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+    margin: 12px 0;
+  }
+  .ready-chip {
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 0.8rem; font-weight: 600;
+    background: var(--surface2); color: var(--text-muted);
+    transition: background 0.3s, color 0.3s;
+  }
+  .ready-chip.is-ready { background: #47B04B; color: #fff; }
+
+  .bet-section {
+    margin-top: 16px; padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    text-align: left;
+  }
+  .bet-section label {
+    display: block; font-size: 0.8rem; color: var(--text-muted);
+    margin-bottom: 4px; font-weight: 600;
+  }
+  .bet-row {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 10px;
+  }
+  .bet-row select, .bet-row input {
+    flex: 1; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--bg); color: var(--text);
+    font-family: inherit; font-size: 0.9rem;
+  }
+  .bet-row input[type="number"] { max-width: 100px; }
+  .bet-confirm {
+    display: block; width: 100%; padding: 8px;
+    border-radius: 8px; border: none;
+    background: #47B04B; color: #fff;
+    font-family: inherit; font-weight: 700; font-size: 0.9rem;
+    cursor: pointer; margin-bottom: 8px;
+    transition: background 0.2s;
+  }
+  .bet-confirm:hover { background: #3a9a3f; }
+  .bet-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+  .bet-status {
+    font-size: 0.8rem; color: var(--text-muted);
+    text-align: center; min-height: 1.2em;
+  }
+
+  .ready-btn {
+    padding: 12px 36px; border-radius: 10px; border: none;
+    background: var(--accent); color: #fff;
+    font-family: inherit; font-weight: 700; font-size: 1rem;
+    cursor: pointer; margin-top: 10px;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .ready-btn:hover { background: var(--accent-hover); }
+  .ready-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .ready-btn.is-ready { background: #47B04B; }
+
+  /* ── Bet results toast ── */
+  .bet-results {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 100; display: flex; flex-direction: column; gap: 6px;
+    pointer-events: none;
+  }
+  .bet-result-item {
+    padding: 8px 20px; border-radius: 10px;
+    font-size: 0.9rem; font-weight: 700;
+    text-align: center; animation: betResultPop 0.3s ease-out;
+    white-space: nowrap;
+  }
+  .bet-result-item.won { background: #47B04B; color: #fff; }
+  .bet-result-item.lost { background: #E74856; color: #fff; }
+  @keyframes betResultPop {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  /* ── Shop tab ── */
+  .shop-items { display: flex; flex-direction: column; gap: 6px; padding: 4px 0; }
+  .shop-item-btn {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--surface2); color: var(--text);
+    font-family: inherit; font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; transition: background 0.2s, border-color 0.2s;
+    text-align: left; width: 100%;
+  }
+  .shop-item-btn:hover { background: rgba(255,255,255,0.08); border-color: var(--accent); }
+  .shop-item-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .shop-item-btn .shop-item-name { flex: 1; }
+  .shop-item-btn .shop-item-cost {
+    color: #47B04B; font-weight: 700; white-space: nowrap;
+  }
+  .shop-item-btn .shop-item-action {
+    font-size: 0.7rem; color: var(--text-muted); font-weight: 400;
+  }
+  .shop-empty {
+    text-align: center; padding: 24px 12px;
+    color: var(--text-muted); font-size: 0.85rem;
+  }
+
+  /* ── Shop edit mode (host) ── */
+  .shop-edit-toggle {
+    padding: 6px 14px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);
+    background: transparent; color: var(--text-muted); cursor: pointer;
+    font-family: inherit; font-size: 0.75rem; font-weight: 600;
+    transition: background 0.2s;
+  }
+  .shop-edit-toggle:hover { background: rgba(255,255,255,0.05); }
+  .shop-edit-toggle.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .shop-edit-form {
+    display: none; flex-direction: column; gap: 8px;
+    padding: 12px; margin-top: 8px;
+    border: 1px dashed rgba(255,255,255,0.15);
+    border-radius: 10px; background: rgba(0,0,0,0.15);
+  }
+  .shop-edit-form.visible { display: flex; }
+  .shop-edit-form input, .shop-edit-form select {
+    padding: 8px 10px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--bg); color: var(--text);
+    font-family: inherit; font-size: 0.85rem;
+  }
+  .shop-edit-form button {
+    padding: 8px; border-radius: 6px; border: none;
+    background: #47B04B; color: #fff;
+    font-family: inherit; font-weight: 700; font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .shop-edit-form button:hover { background: #3a9a3f; }
+  .shop-item-edit-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 8px;
+    background: rgba(255,255,255,0.03);
+  }
+  .shop-item-edit-row .shop-item-name { flex: 1; font-weight: 600; font-size: 0.85rem; }
+  .shop-item-edit-row .shop-item-cost { color: #47B04B; font-weight: 700; font-size: 0.85rem; }
+  .shop-item-del {
+    padding: 2px 8px; border-radius: 4px; border: none;
+    background: #E74856; color: #fff; cursor: pointer;
+    font-size: 0.7rem; font-weight: 700;
+  }
+
+  /* ── Left Panel (inventory + boost) ── */
+  .left-panel {
+    display: none;
+    flex-direction: column;
+    width: 220px;
+    min-width: 180px;
+    background: var(--surface);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .left-panel.visible { display: flex; }
+  .left-panel::-webkit-scrollbar { width: 5px; }
+  .left-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+  .lp-section {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .lp-section-title {
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-muted); margin-bottom: 8px;
+  }
+
+  /* Inventory items in left panel */
+  .inv-slot {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+    cursor: pointer; margin-bottom: 5px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .inv-slot:hover { border-color: var(--accent); background: rgba(233,69,96,0.08); }
+  .inv-slot.disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+  .inv-slot .inv-icon { font-size: 1.1rem; flex-shrink: 0; }
+  .inv-slot .inv-info { flex: 1; min-width: 0; }
+  .inv-slot .inv-name {
+    font-size: 0.78rem; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .inv-slot .inv-type {
+    font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .inv-slot .inv-key {
+    font-size: 0.6rem; color: var(--text-muted); font-weight: 700;
+    background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 3px;
+  }
+  .inv-empty {
+    font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 10px 0;
+  }
+
+  /* Boost section in left panel */
+  .lp-boost-row { display: flex; gap: 6px; margin-bottom: 6px; }
+  .lp-boost-row select, .lp-boost-row input {
+    flex: 1; padding: 6px 8px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--bg); color: var(--text);
+    font-family: inherit; font-size: 0.8rem;
+  }
+  .lp-boost-impact {
+    font-size: 0.75rem; text-align: center; margin: 4px 0;
+  }
+  .lp-boost-btn {
+    display: block; width: 100%; padding: 7px;
+    border-radius: 7px; border: none;
+    background: #47B04B; color: #fff;
+    font-family: inherit; font-weight: 700; font-size: 0.8rem;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .lp-boost-btn:hover { background: #3a9a3f; }
+  .lp-boost-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .lp-boost-status {
+    font-size: 0.75rem; color: var(--text-muted); text-align: center; min-height: 1em; margin-top: 4px;
+  }
+
+  /* ── Bet tooltip on wheel ── */
+  .bet-tooltip {
+    position: absolute; pointer-events: none;
+    background: rgba(20,20,40,0.92); color: #fff; padding: 6px 10px;
+    border-radius: 6px; font-size: 0.75rem; white-space: nowrap;
+    z-index: 100; transform: translate(-50%, -100%); margin-top: -8px;
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .bet-tooltip-row { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+  .bet-tooltip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .wheel-bet-hint {
+    position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+    font-size: 0.65rem; color: var(--text-muted); opacity: 0.7;
+    pointer-events: none; white-space: nowrap;
+  }
+
+  /* ── Ready Bar (below status bar) ── */
+  .ready-bar {
+    display: none; align-items: center; gap: 12px;
+    padding: 8px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .ready-bar.visible { display: flex; }
+  .ready-bar-btn {
+    padding: 8px 24px; border-radius: 8px; border: none;
+    background: var(--accent); color: #fff;
+    font-family: inherit; font-weight: 700; font-size: 0.9rem;
+    cursor: pointer; transition: background 0.2s, transform 0.1s;
+    flex-shrink: 0;
+  }
+  .ready-bar-btn:hover { background: var(--accent-hover); }
+  .ready-bar-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .ready-bar-btn.is-ready { background: #47B04B; }
+  .ready-bar-countdown {
+    font-size: 1.3rem; font-weight: 800; color: var(--accent);
+    font-variant-numeric: tabular-nums; min-width: 30px;
+  }
+  .ready-bar-players {
+    display: flex; flex-wrap: wrap; gap: 6px; flex: 1;
+  }
+  .ready-bar-chip {
+    padding: 3px 10px; border-radius: 14px;
+    font-size: 0.72rem; font-weight: 600;
+    background: var(--surface); color: var(--text-muted);
+    transition: background 0.3s, color 0.3s;
+  }
+  .ready-bar-chip.is-ready { background: #47B04B; color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- Connection overlay -->
+<div class="connection-overlay" id="connectionOverlay">
+  <div class="connection-box">
+    <h2>WHEEL SPIN — MULTIPLAYER</h2>
+    <div class="conn-tabs">
+      <button class="active" data-mode="host">Host</button>
+      <button data-mode="join">Join</button>
+    </div>
+    <div class="conn-form active" id="hostForm">
+      <input type="text" id="hostNameInput" placeholder="Your name" maxlength="30" value="">
+      <input type="number" id="portInput" value="8080" min="1024" max="65535" placeholder="Port">
+      <button class="conn-submit" id="startHostBtn">Start Hosting</button>
+    </div>
+    <div class="conn-form" id="joinForm">
+      <input type="text" id="joinNameInput" placeholder="Your name" maxlength="30" value="">
+      <input type="text" id="joinAddress" placeholder="IP:Port (e.g. 192.168.1.100:8080)">
+      <button class="conn-submit" id="connectBtn">Connect</button>
+    </div>
+    <div class="conn-error" id="connError"></div>
+  </div>
+</div>
+
+<header><h1>WHEEL SPIN</h1></header>
+
+<!-- Status bar (visible when connected) -->
+<div class="status-bar" id="statusBar">
+  <div class="status-dot" id="statusDot"></div>
+  <span class="status-name" id="statusName"></span>
+  <span class="host-badge" id="statusHostBadge" style="display:none">HOST</span>
+  <span class="status-text" id="statusText">Connected</span>
+  <button id="disconnectBtn">Disconnect</button>
+</div>
+
+<!-- Ready Bar (persistent, below status bar) -->
+<div class="ready-bar" id="readyBar">
+  <button class="ready-bar-btn" id="readyBarBtn">READY</button>
+  <span class="ready-bar-countdown" id="readyBarCountdown"></span>
+  <div class="ready-bar-players" id="readyBarPlayers"></div>
+</div>
+
+<div class="app" id="app">
+  <!-- Left Panel: Scoreboard + Inventory + Boost -->
+  <div class="left-panel" id="leftPanel">
+    <div class="lp-section" id="lpScoreboard">
+      <div class="lp-section-title">Scoreboard</div>
+      <div id="scoreboardList"></div>
+    </div>
+    <div class="lp-section">
+      <div class="lp-section-title">Inventory</div>
+      <div id="invSlots"></div>
+    </div>
+  </div>
+
+  <div class="wheel-panel" id="wheelPanel">
+    <div class="spin-initiator" id="spinInitiator"></div>
+    <div class="wheel-cell" id="mainCell">
+      <div class="wheel-cell-inner">
+        <div class="pointer" id="mainPointer"></div>
+        <canvas class="wheel-canvas" id="mainCanvas"></canvas>
+        <button class="center-btn" id="spinBtn">SPIN</button>
+        <div class="wheel-toast" id="wheelToast">
+          <div class="wheel-toast-label"></div>
+          <div class="wheel-toast-name"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-resize" id="sidebarResize"></div>
+    <div class="wheel-selector">
+      <select id="wheelSelect" title="Select wheel"></select>
+      <button id="addWheelBtn" title="Add wheel">+</button>
+      <button id="renameWheelBtn" title="Rename wheel">&#9998;</button>
+      <button id="deleteWheelBtn" title="Delete wheel">&#128465;</button>
+    </div>
+    <div class="sidebar-tabs">
+      <button class="active" data-tab="shop">Shop</button>
+      <button data-tab="entries">Entries</button>
+      <button data-tab="configure">Configure</button>
+    </div>
+
+    <!-- Shop tab -->
+    <div class="tab-content active" id="tab-shop">
+      <div class="sidebar-header">
+        <h2>Shop</h2>
+        <button class="shop-edit-toggle" id="shopEditToggle" style="display:none">Edit</button>
+      </div>
+      <div class="shop-items" id="shopItems"></div>
+      <div class="shop-edit-form" id="shopEditForm">
+        <input type="text" id="shopNewName" placeholder="Item name" maxlength="40">
+        <div style="display:flex;gap:6px;">
+          <input type="number" id="shopNewCost" placeholder="Cost ($)" min="0" style="flex:1;">
+          <select id="shopNewAction" style="flex:1;">
+            <option value="add_entry">Add to Wheel</option>
+            <option value="remove_entry">Remove from Wheel</option>
+            <option value="inventory">Inventory Item</option>
+          </select>
+        </div>
+        <select id="shopNewWheel" title="Target wheel"></select>
+        <select id="shopNewItemType" style="display:none;" title="Inventory item type">
+          <option value="boost">Wheel Boost (nudge during spin)</option>
+        </select>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select id="shopNewSound" style="flex:1;" title="Purchase sound effect">
+            <option value="">No sound</option>
+          </select>
+          <button id="shopSoundPreview" style="padding:4px 8px;font-size:0.75rem;" title="Preview sound">&#9654;</button>
+        </div>
+        <button id="shopAddBtn">Add Item</button>
+      </div>
+      <!-- Chance Enhancer (always visible in shop) -->
+      <div class="shop-boost-section" id="shopBoostSection" style="padding:10px 14px;border-top:1px solid rgba(255,255,255,0.06);margin-top:8px;">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px;">Chance Enhancer</div>
+        <div class="lp-boost-row">
+          <select id="lpBoostEntry" title="Entry to boost" style="width:100%;"><option value="">Pick entry...</option></select>
+        </div>
+        <div class="lp-boost-row" style="align-items:center;">
+          <span style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;">$0</span>
+          <input type="range" id="lpBoostSlider" min="0" max="100" value="0" style="flex:1;">
+          <span id="lpBoostMax" style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;">$0</span>
+        </div>
+        <div class="lp-boost-impact">
+          <span style="color:var(--text-muted);">Cost: </span><span id="lpBoostCost" style="color:#47B04B;font-weight:700;">$0</span>
+          <span style="color:var(--text-muted);margin-left:8px;">Impact: </span><span id="lpBoostImpact" style="color:#F5A623;font-weight:700;">+0%</span>
+        </div>
+        <button class="lp-boost-btn" id="lpBoostBtn">Apply Boost</button>
+        <div class="lp-boost-status" id="lpBoostStatus"></div>
+      </div>
+    </div>
+
+    <!-- Entries tab -->
+    <div class="tab-content" id="tab-entries">
+      <div class="sidebar-header">
+        <h2>Names</h2>
+        <span class="entry-count" id="entryCount">0</span>
+      </div>
+      <textarea id="namesInput" placeholder="Enter names, one per line" spellcheck="false"></textarea>
+      <div class="sidebar-actions">
+        <button class="btn-shuffle" id="shuffleBtn">Shuffle</button>
+        <button class="btn-reset" id="resetBtn">Clear</button>
+      </div>
+    </div>
+
+    <!-- Configure tab -->
+    <div class="tab-content" id="tab-configure">
+      <div class="config-panel" id="configPanel">
+        <!-- Default sound -->
+        <div class="config-section">
+          <div class="config-section-title">Default Win Sound</div>
+          <div style="display:flex;gap:6px;align-items:center;padding:4px 0;">
+            <select id="defaultSoundSel" style="flex:1;min-width:0;" title="Default sound for all entries without a custom sound">
+              <option value="">Procedural jingle</option>
+            </select>
+            <input type="range" min="0" max="100" class="vol-slider" id="defaultVolSlider" title="Default volume">
+            <span class="vol-label" id="defaultVolLabel">100%</span>
+            <button class="preview-btn" id="defaultSoundPreview" title="Preview sound">&#9654;</button>
+          </div>
+        </div>
+
+        <!-- Default font size -->
+        <div class="config-section">
+          <div class="config-section-title">Default Font Size</div>
+          <div style="display:flex;gap:6px;align-items:center;padding:4px 0;">
+            <input type="range" min="6" max="72" value="18" class="vol-slider" style="width:100px;" id="defaultFontSlider" title="Default font size">
+            <span class="vol-label" id="defaultFontLabel">18px</span>
+          </div>
+        </div>
+
+        <!-- Default trigger -->
+        <div class="config-section">
+          <div class="config-section-title">Default Trigger</div>
+          <div style="display:flex;gap:6px;align-items:center;padding:4px 0;">
+            <select id="defaultTriggerSel" style="flex:1;min-width:0;" title="Default trigger for entries without a custom trigger">
+              <option value="">No trigger</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Entry sounds + sub-wheel assignments -->
+        <div class="config-section">
+          <div class="config-section-title">Entry Sounds &amp; Triggers</div>
+          <div id="entryConfigList"></div>
+        </div>
+
+        <!-- Sub-wheel triggers are now assigned via per-entry dropdown above -->
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="winner-label" id="winnerLabel">Winner</div>
+    <div class="winner-name" id="winnerName"></div>
+    <div class="modal-buttons">
+      <button class="btn-close-modal" id="closeModal">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="action-overlay" id="actionModal">
+  <div class="action-modal">
+    <h3 id="actionTitle"></h3>
+    <p id="actionDesc"></p>
+    <div id="actionBody"></div>
+    <div class="action-buttons">
+      <button class="btn-action-confirm" id="actionConfirm">Confirm</button>
+      <button class="btn-action-cancel" id="actionCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Betting overlay (appears when player clicks Ready) -->
+<div class="ready-overlay" id="readyOverlay">
+  <div class="ready-box">
+    <h2>Place Your Bet</h2>
+    <div class="bet-section" style="border-top:none;margin-top:0;padding-top:0;">
+      <div class="bet-row">
+        <select id="betEntry" title="Bet on entry"><option value="">Pick an entry...</option></select>
+        <input type="number" id="betAmount" min="1" placeholder="$" title="Bet amount">
+      </div>
+      <button class="bet-confirm" id="betConfirmBtn">Place Bet</button>
+      <div class="bet-status" id="betStatus"></div>
+    </div>
+    <button class="bet-confirm" id="closeBetOverlay" style="background:var(--surface2);color:var(--text-muted);margin-top:4px;">Close</button>
+  </div>
+</div>
+
+<!-- Bet results toast -->
+<div class="bet-results" id="betResults"></div>
+
+<div class="confetti-container" id="confetti"></div>
+
+<script>
+(() => {
+  const COLORS = [
+    '#E74856','#F5A623','#47B04B','#557FC3','#F9D423',
+    '#D64DB0','#43B0A8','#EF6C35'
+  ];
+  const TWO_PI = Math.PI * 2;
+
+  // ── Persisted Config ──
+  const STORAGE_KEY = 'wheelSpinConfig';
+  const DEFAULT_ENTRIES = 'Add a game\nBloon\'s Multiplayer\nDark Pictures\nDota\nDota Custom Game\nDrink\nHearthstone\nHeathstone\nLegionTD\nLuke\'s Choice\nMechabellum\nMinecraft Minigame\nMinecraft Mod\nSharp\'s Choice\nSpin Again\nStarcraft\nStarcraft Custom\nVintage Story\nZeeb\'s Choice\nAdd a game\nRemove a game';
+
+  function defaultWheelConfig(entries) {
+    return { title: 'Main Wheel', entries: entries || '', sounds: {}, volumes: {}, defaultSound: '', defaultVolume: 100, defaultFontSize: 18, fontSizes: {}, triggers: {}, defaultTrigger: '', entryWeights: {} };
+  }
+
+  let config = { activeWheelId: null, wheels: {}, shop: [] };
+  let selectedWheelId = null;
+
+  function selectedWheelConfig() { return config.wheels[selectedWheelId]; }
+
+  function ensureWheelDefaults(wc) {
+    if (!wc.sounds) wc.sounds = {};
+    if (!wc.volumes) wc.volumes = {};
+    if (!wc.triggers) wc.triggers = {};
+    if (!wc.fontSizes) wc.fontSizes = {};
+    if (!wc.entryWeights) wc.entryWeights = {};
+    if (wc.defaultSound == null) wc.defaultSound = '';
+    if (wc.defaultVolume == null) wc.defaultVolume = 100;
+    if (wc.defaultFontSize == null) wc.defaultFontSize = 18;
+    if (wc.defaultTrigger == null) wc.defaultTrigger = '';
+    return wc;
+  }
+
+  function migrateConfig(saved) {
+    if (saved.wheels) {
+      for (const wc of Object.values(saved.wheels)) ensureWheelDefaults(wc);
+      return saved;
+    }
+    const mainId = 'wheel_main';
+    const migrated = { activeWheelId: mainId, wheels: {} };
+    migrated.wheels[mainId] = {
+      title: 'Main Wheel',
+      entries: saved.entries || DEFAULT_ENTRIES,
+      sounds: saved.sounds || {},
+      volumes: saved.volumes || {},
+      defaultSound: saved.defaultSound || '',
+      defaultVolume: saved.defaultVolume != null ? saved.defaultVolume : 100,
+      triggers: {},
+    };
+    if (saved.subWheels) {
+      for (const [id, sw] of Object.entries(saved.subWheels)) {
+        migrated.wheels[id] = { title: sw.title || id, entries: sw.entries || '', sounds: {}, volumes: {}, defaultSound: '', defaultVolume: 100, triggers: {} };
+      }
+    }
+    if (saved.triggers) migrated.wheels[mainId].triggers = { ...saved.triggers };
+    return migrated;
+  }
+
+  // Multiplayer state (declared early so saveConfig can reference it)
+  const mp = {
+    ws: null,
+    connected: false,
+    isHost: false,
+    clientId: null,
+    playerName: '',
+    players: [],
+    reconnectAttempts: 0,
+    maxReconnect: 5,
+    lastHost: '',
+    lastPort: '',
+    send(msg) {
+      if (mp.ws && mp.ws.readyState === WebSocket.OPEN) mp.ws.send(JSON.stringify(msg));
+    }
+  };
+
+  function saveConfig() {
+    const wc = selectedWheelConfig();
+    if (wc) wc.entries = textarea.value;
+    // Non-host clients don't persist remote config locally
+    if (mp.connected && !mp.isHost) return;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); } catch(e) {}
+    // Push to server if host
+    if (mp.connected && mp.isHost) {
+      mp.send({ type: 'config_update', payload: { config } });
+    }
+  }
+
+  function loadConfig() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        config = migrateConfig(JSON.parse(raw));
+      } else {
+        const id = 'wheel_main';
+        config = { activeWheelId: id, wheels: {} };
+        config.wheels[id] = defaultWheelConfig(DEFAULT_ENTRIES);
+      }
+    } catch(e) {
+      const id = 'wheel_main';
+      config = { activeWheelId: id, wheels: {} };
+      config.wheels[id] = defaultWheelConfig(DEFAULT_ENTRIES);
+    }
+    selectedWheelId = config.activeWheelId;
+  }
+
+  // ── Sound manifest ──
+  // Loaded via <script src="sounds/sounds.js"> which sets window.SOUND_FILES
+  let availableSounds = Array.isArray(window.SOUND_FILES) ? window.SOUND_FILES : [];
+
+  // ── DOM ──
+  const spinBtn = document.getElementById('spinBtn');
+  const textarea = document.getElementById('namesInput');
+  const countEl = document.getElementById('entryCount');
+  const modal = document.getElementById('modal');
+  const winnerEl = document.getElementById('winnerName');
+  const winnerLabelEl = document.getElementById('winnerLabel');
+  const closeBtn = document.getElementById('closeModal');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const confettiContainer = document.getElementById('confetti');
+  const configPanel = document.getElementById('configPanel');
+  const entryConfigList = document.getElementById('entryConfigList');
+  const wheelSelect = document.getElementById('wheelSelect');
+
+  // ── Tabs ──
+  document.querySelectorAll('.sidebar-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.sidebar-tabs button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'configure') rebuildConfigUI();
+      if (btn.dataset.tab === 'shop') { rebuildShopUI(); refreshBoostPanel(); }
+    });
+  });
+
+  // ── Audio Context ──
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playTick() {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = 1800 + Math.random() * 600;
+    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.06);
+  }
+
+  function playJingle(vol) {
+    const v = (vol != null ? vol : 1) * 0.12;
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const t = audioCtx.currentTime + i * 0.12;
+      gain.gain.setValueAtTime(v, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      osc.start(t);
+      osc.stop(t + 0.3);
+    });
+  }
+
+  function playCheer() {
+    const duration = 1.5;
+    const bufferSize = audioCtx.sampleRate * duration;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 0.5;
+    const gain = audioCtx.createGain();
+    const now = audioCtx.currentTime;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.15, now + 0.15);
+    gain.gain.setValueAtTime(0.15, now + 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    source.connect(bp); bp.connect(gain); gain.connect(audioCtx.destination);
+    source.start(now); source.stop(now + duration);
+  }
+
+  const soundCache = {};
+  function playSoundFile(file, vol) {
+    const path = 'sounds/' + file;
+    if (!soundCache[path]) soundCache[path] = new Audio(path);
+    const audio = soundCache[path];
+    audio.volume = vol != null ? vol : 1;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  }
+
+  function getVolume(name, wheelId) {
+    const wc = config.wheels[wheelId || config.activeWheelId];
+    if (!wc) return 1;
+    if (wc.volumes[name] != null) return wc.volumes[name] / 100;
+    return (wc.defaultVolume != null ? wc.defaultVolume : 100) / 100;
+  }
+
+  function playWinSound(name, wheelId) {
+    const wc = config.wheels[wheelId || config.activeWheelId];
+    if (!wc) return;
+    const vol = getVolume(name, wheelId);
+    const entryFile = wc.sounds[name];
+    if (entryFile) {
+      playSoundFile(entryFile, vol);
+    } else if (wc.defaultSound) {
+      playSoundFile(wc.defaultSound, vol);
+    } else {
+      playJingle(vol);
+    }
+    playCheer();
+  }
+
+  // ── Utility ──
+  function luma(hex) {
+    const c = hex.replace('#','');
+    return 0.2126*(parseInt(c.substring(0,2),16)/255) +
+           0.7152*(parseInt(c.substring(2,4),16)/255) +
+           0.0722*(parseInt(c.substring(4,6),16)/255);
+  }
+
+  function segmentAtAngle(segments, angle) {
+    const a = ((angle % TWO_PI) + TWO_PI) % TWO_PI;
+    for (let i = 0; i < segments.length; i++) if (a < segments[i].end) return i;
+    return segments.length - 1;
+  }
+
+  function cryptoRandom() {
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    return arr[0] / 0xFFFFFFFF;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // ── Wheel Context ──
+  // ═══════════════════════════════════════════════════════════════
+
+  function createWheel(canvasOrId, pointerOrId) {
+    const canvas = typeof canvasOrId === 'string' ? document.getElementById(canvasOrId) : canvasOrId;
+    const ctx = canvas.getContext('2d');
+    const pointerEl = typeof pointerOrId === 'string' ? document.getElementById(pointerOrId) : pointerOrId;
+    const w = {
+      canvas, ctx, pointerEl,
+      names: [], rotation: 0, spinning: false, animFrame: null,
+      cooldowns: new Map(),
+      offscreen: null, offCtx: null, cachedSegments: [], layoutDirty: true,
+      defaultFontSize: 18, fontSizes: {},  // set externally before draw
+    };
+
+    w.entryWeights = {};
+    w.getWeight = (n, idx) => {
+      const base = w.entryWeights[n] != null ? w.entryWeights[n] : 1;
+      // Index-based boost overrides (for duplicate entries)
+      const idxKey = '__idx_' + idx;
+      const idxBoost = w.entryWeights[idxKey] != null ? w.entryWeights[idxKey] : 0;
+      const cd = w.cooldowns.get(n);
+      return (base + idxBoost) * (cd ? cd.weight : 1);
+    };
+    w.invalidateLayout = () => { w.layoutDirty = true; };
+
+    w.rebuildLayout = () => {
+      if (!w.layoutDirty && w.cachedSegments.length === w.names.length) return;
+      w.layoutDirty = false;
+      const weights = w.names.map((n, i) => w.getWeight(n, i));
+      const total = weights.reduce((a, b) => a + b, 0);
+      w.cachedSegments = [];
+      let cursor = 0;
+      for (let i = 0; i < w.names.length; i++) {
+        const arc = (weights[i] / total) * TWO_PI;
+        w.cachedSegments.push({ start: cursor, arc, end: cursor + arc });
+        cursor += arc;
+      }
+      const size = w.canvas.width;
+      if (!w.offscreen || w.offscreen.width !== size) {
+        w.offscreen = document.createElement('canvas');
+        w.offscreen.width = size; w.offscreen.height = size;
+        w.offCtx = w.offscreen.getContext('2d');
+      }
+      const oc = w.offCtx, cx = size/2, r = cx*0.92, maxLen = r*0.75;
+      const cssSize = size / devicePixelRatio;
+      const fontScale = cssSize / 500; // scale fonts proportionally to wheel size
+      oc.clearRect(0,0,size,size);
+      oc.save(); oc.translate(cx,cx);
+      for (let i = 0; i < w.names.length; i++) {
+        const seg = w.cachedSegments[i];
+        oc.beginPath(); oc.moveTo(0,0); oc.arc(0,0,r,seg.start,seg.end); oc.closePath();
+        oc.fillStyle = COLORS[i%COLORS.length]; oc.fill();
+        oc.strokeStyle = 'rgba(0,0,0,0.25)'; oc.lineWidth = 3*devicePixelRatio; oc.stroke();
+        oc.save(); oc.rotate(seg.start+seg.arc/2);
+        oc.textAlign = 'right'; oc.textBaseline = 'middle';
+        const baseFontSize = (w.fontSizes[w.names[i]] != null ? w.fontSizes[w.names[i]] : w.defaultFontSize) || 18;
+        let fs = Math.min(baseFontSize * devicePixelRatio * Math.min(fontScale, 1), seg.arc*r*0.45);
+        fs = Math.max(fs, 4*devicePixelRatio * Math.min(fontScale, 0.6));
+        oc.font = `600 ${fs}px "Nunito","Segoe UI",system-ui,sans-serif`;
+        let label = w.names[i];
+        while (oc.measureText(label).width > maxLen && label.length > 1) label = label.slice(0,-1);
+        if (label !== w.names[i]) label += '…';
+        oc.fillStyle = luma(COLORS[i%COLORS.length]) > 0.55 ? '#1a1a2e' : '#fff';
+        oc.shadowColor = 'rgba(0,0,0,0.35)'; oc.shadowBlur = 3*devicePixelRatio;
+        oc.fillText(label, r*0.93, 0);
+        oc.restore();
+      }
+      oc.beginPath(); oc.arc(0,0,r+2*devicePixelRatio,0,TWO_PI);
+      oc.strokeStyle = 'rgba(255,255,255,0.08)'; oc.lineWidth = 5*devicePixelRatio; oc.stroke();
+      oc.restore();
+    };
+
+    w.resizeCanvas = () => {
+      const cell = w.canvas.parentElement.parentElement; // .wheel-cell
+      const cellRect = cell.getBoundingClientRect();
+      // Account for title height
+      const titleEl = cell.querySelector('.wheel-cell-title');
+      const titleH = titleEl ? titleEl.getBoundingClientRect().height + 4 : 0;
+      const availW = cellRect.width;
+      const availH = cellRect.height - titleH;
+      const size = Math.max(Math.min(availW, availH), 50);
+      const inner = w.canvas.parentElement;
+      inner.style.width = size + 'px';
+      inner.style.height = size + 'px';
+      w.canvas.width = size*devicePixelRatio; w.canvas.height = size*devicePixelRatio;
+      // Scale pointer and center button proportionally to wheel size
+      const scale = Math.min(size / 500, 1); // 500px is our reference size, never scale up
+      const pEl = cell.querySelector('.pointer');
+      if (pEl) {
+        const bw = Math.round(18 * scale);
+        const bh = Math.round(38 * scale);
+        pEl.style.borderLeftWidth = bw + 'px';
+        pEl.style.borderRightWidth = bw + 'px';
+        pEl.style.borderTopWidth = bh + 'px';
+        pEl.style.top = -Math.round(bh * 0.47) + 'px';
+      }
+      const cBtn = cell.querySelector('.center-btn');
+      if (cBtn) {
+        const btnSize = Math.round(170 * scale);
+        const btnFont = Math.max(0.5, 1.5 * scale);
+        const btnBorder = Math.max(2, Math.round(7 * scale));
+        cBtn.style.width = btnSize + 'px';
+        cBtn.style.height = btnSize + 'px';
+        cBtn.style.fontSize = btnFont + 'rem';
+        cBtn.style.borderWidth = btnBorder + 'px';
+      }
+      w.invalidateLayout(); w.draw();
+    };
+
+    w.draw = () => {
+      const cw = w.canvas.width, ch = w.canvas.height, cx = cw/2, cy = ch/2;
+      w.ctx.clearRect(0,0,cw,ch);
+      if (w.names.length === 0) {
+        const r = cx*0.92;
+        w.ctx.save();
+        w.ctx.beginPath(); w.ctx.arc(cx,cy,r,0,TWO_PI);
+        w.ctx.fillStyle = '#1e2a45'; w.ctx.fill();
+        w.ctx.strokeStyle = 'rgba(233,69,96,0.3)'; w.ctx.lineWidth = 4*devicePixelRatio; w.ctx.stroke();
+        w.ctx.fillStyle = '#556';
+        w.ctx.font = `${16*devicePixelRatio}px "Nunito","Segoe UI",system-ui,sans-serif`;
+        w.ctx.textAlign = 'center'; w.ctx.textBaseline = 'middle';
+        w.ctx.fillText('No entries', cx, cy);
+        w.ctx.restore();
+        return;
+      }
+      w.rebuildLayout();
+      w.ctx.save(); w.ctx.translate(cx,cy); w.ctx.rotate(w.rotation);
+      w.ctx.drawImage(w.offscreen, -cx, -cy);
+      w.ctx.restore();
+    };
+
+    w.spin = (onFinish) => {
+      if (w.spinning || w.names.length < 2) return;
+      w.spinning = true;
+      w.rebuildLayout();
+      const segments = w.cachedSegments;
+      const landAngle = cryptoRandom() * TWO_PI;
+      const winnerIndex = segmentAtAngle(segments, landAngle);
+      const targetAngle = -Math.PI/2 - landAngle;
+      const minSpins = 6 + Math.floor(Math.random() * 5); // 6-10 revolutions
+      let adj = targetAngle;
+      while (adj <= w.rotation + minSpins * TWO_PI) adj += TWO_PI;
+      const startR = w.rotation, delta = adj - startR;
+      const dur = 9000 + Math.random()*3000, startT = performance.now(); // 9-12 seconds
+      const easePow = 5; // quintic easing — gold standard for wheel spinners
+      let lastSeg = -1;
+      function anim(now) {
+        const t = Math.min((now-startT)/dur, 1);
+        w.rotation = startR + delta * (1 - Math.pow(1-t, easePow));
+        const pa = (((-w.rotation - Math.PI/2) % TWO_PI) + TWO_PI) % TWO_PI;
+        const cs = segmentAtAngle(segments, pa);
+        if (cs !== lastSeg) {
+          lastSeg = cs; playTick();
+          w.pointerEl.classList.add('tick');
+          setTimeout(() => w.pointerEl.classList.remove('tick'), 50);
+        }
+        w.draw();
+        if (t < 1) w.animFrame = requestAnimationFrame(anim);
+        else { w.spinning = false; if (onFinish) onFinish(w.names[winnerIndex]); }
+      }
+      w.animFrame = requestAnimationFrame(anim);
+    };
+
+    return w;
+  }
+
+  const mainWheel = createWheel('mainCanvas', 'mainPointer');
+  const wheelPanel = document.getElementById('wheelPanel');
+  const mainCell = document.getElementById('mainCell');
+  let subWheelCells = []; // {element, wheel, wheelId}
+
+  function updateGridCols() {
+    const total = 1 + subWheelCells.length;
+    wheelPanel.classList.remove('cols-2', 'cols-3');
+    if (total >= 3) wheelPanel.classList.add('cols-3');
+    else if (total === 2) wheelPanel.classList.add('cols-2');
+  }
+
+  function createWheelCell(title) {
+    const cell = document.createElement('div');
+    cell.className = 'wheel-cell sub-cell';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'wheel-cell-title';
+    titleEl.textContent = title;
+    cell.appendChild(titleEl);
+
+    const inner = document.createElement('div');
+    inner.className = 'wheel-cell-inner';
+
+    const pointer = document.createElement('div');
+    pointer.className = 'pointer';
+    inner.appendChild(pointer);
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'wheel-canvas';
+    inner.appendChild(canvas);
+
+    const btn = document.createElement('button');
+    btn.className = 'center-btn';
+    btn.disabled = true;
+    btn.textContent = 'SUB';
+    inner.appendChild(btn);
+
+    cell.appendChild(inner);
+    wheelPanel.appendChild(cell);
+
+    const wheel = createWheel(canvas, pointer);
+    subWheelCells.push({ element: cell, wheel, titleEl });
+    updateGridCols();
+    return { cell, wheel };
+  }
+
+  function clearSubWheels() {
+    for (const sc of subWheelCells) {
+      if (sc.wheel.animFrame) cancelAnimationFrame(sc.wheel.animFrame);
+      sc.element.remove();
+    }
+    subWheelCells = [];
+    updateGridCols();
+  }
+
+  function resizeAllWheels() {
+    mainWheel.resizeCanvas();
+    for (const sc of subWheelCells) sc.wheel.resizeCanvas();
+  }
+
+  // ── Cooldown ──
+  const CD_FLOOR = 0.2, CD_RECOVERY = 0.16;
+  function applyCD(name) { mainWheel.cooldowns.set(name, { weight: CD_FLOOR }); }
+  function advanceCD(exclude) {
+    for (const [n, cd] of mainWheel.cooldowns) {
+      if (n === exclude) continue;
+      cd.weight = Math.min(1, cd.weight + CD_RECOVERY);
+      if (cd.weight >= 1) mainWheel.cooldowns.delete(n);
+    }
+  }
+
+  // ── Names ──
+  function getNames() { return textarea.value.split('\n').map(s => s.trim()).filter(Boolean); }
+
+  function syncWheelConfig(wheel, wc) {
+    wheel.defaultFontSize = wc.defaultFontSize != null ? wc.defaultFontSize : 18;
+    wheel.fontSizes = wc.fontSizes || {};
+    wheel.entryWeights = wc.entryWeights || {};
+  }
+
+  function updateNames() {
+    const names = getNames();
+    countEl.textContent = names.length;
+    if (selectedWheelId === config.activeWheelId) {
+      const wc = selectedWheelConfig();
+      if (wc) syncWheelConfig(mainWheel, wc);
+      mainWheel.names = names;
+      mainWheel.invalidateLayout();
+      mainWheel.draw();
+    }
+    saveConfig();
+  }
+
+  // ── Wheel Selector ──
+  function rebuildWheelSelector() {
+    wheelSelect.innerHTML = '';
+    for (const [id, wc] of Object.entries(config.wheels)) {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = wc.title || id;
+      if (id === selectedWheelId) opt.selected = true;
+      wheelSelect.appendChild(opt);
+    }
+  }
+
+  function switchToWheel(wheelId) {
+    const oldWc = selectedWheelConfig();
+    if (oldWc) oldWc.entries = textarea.value;
+
+    selectedWheelId = wheelId;
+    config.activeWheelId = wheelId;
+
+    const wc = selectedWheelConfig();
+    textarea.value = wc ? wc.entries || '' : '';
+    const names = getNames();
+    if (wc) syncWheelConfig(mainWheel, wc);
+    mainWheel.names = names;
+    mainWheel.cooldowns.clear();
+    mainWheel.rotation = 0;
+    mainWheel.invalidateLayout();
+    mainWheel.draw();
+    countEl.textContent = names.length;
+    rebuildConfigUI();
+    saveConfig();
+  }
+
+  wheelSelect.addEventListener('change', () => switchToWheel(wheelSelect.value));
+
+  document.getElementById('addWheelBtn').addEventListener('click', () => {
+    const id = 'wheel_' + Date.now();
+    config.wheels[id] = defaultWheelConfig('');
+    config.wheels[id].title = 'New Wheel';
+    saveConfig();
+    rebuildWheelSelector();
+    switchToWheel(id);
+  });
+
+  document.getElementById('renameWheelBtn').addEventListener('click', () => {
+    const wc = selectedWheelConfig();
+    if (!wc) return;
+    const newTitle = prompt('Wheel name:', wc.title);
+    if (newTitle != null && newTitle.trim()) {
+      wc.title = newTitle.trim();
+      saveConfig();
+      rebuildWheelSelector();
+    }
+  });
+
+  document.getElementById('deleteWheelBtn').addEventListener('click', () => {
+    const ids = Object.keys(config.wheels);
+    if (ids.length <= 1) return;
+    const wc = selectedWheelConfig();
+    if (!confirm('Delete "' + (wc ? wc.title : '') + '"?')) return;
+    const deadId = selectedWheelId;
+    delete config.wheels[deadId];
+    for (const w of Object.values(config.wheels)) {
+      for (const [entry, targetId] of Object.entries(w.triggers)) {
+        if (targetId === deadId) delete w.triggers[entry];
+      }
+    }
+    const remaining = Object.keys(config.wheels)[0];
+    config.activeWheelId = remaining;
+    saveConfig();
+    rebuildWheelSelector();
+    switchToWheel(remaining);
+  });
+
+  // ── Config UI ──
+  function rebuildConfigUI() {
+    rebuildDefaultSound();
+    rebuildDefaultFont();
+    rebuildDefaultTrigger();
+    rebuildEntryConfig();
+  }
+
+  function rebuildDefaultTrigger() {
+    const wc = selectedWheelConfig();
+    if (!wc) return;
+    const sel = document.getElementById('defaultTriggerSel');
+    sel.innerHTML = '';
+
+    const noneOpt = document.createElement('option');
+    noneOpt.value = ''; noneOpt.textContent = 'No trigger';
+    if (!wc.defaultTrigger) noneOpt.selected = true;
+    sel.appendChild(noneOpt);
+
+    // Action triggers
+    const actGroup = document.createElement('optgroup');
+    actGroup.label = 'Actions';
+    [['__add_entry', 'Add Entry'], ['__remove_entry', 'Remove Entry'], ['__spin_again', 'Spin Again']].forEach(([val, lbl]) => {
+      const opt = document.createElement('option');
+      opt.value = val; opt.textContent = lbl;
+      if (wc.defaultTrigger === val) opt.selected = true;
+      actGroup.appendChild(opt);
+    });
+    sel.appendChild(actGroup);
+
+    // Sub-wheel triggers
+    const otherWheels = Object.entries(config.wheels).filter(([id]) => id !== selectedWheelId);
+    if (otherWheels.length) {
+      const wGroup = document.createElement('optgroup');
+      wGroup.label = 'Sub-Wheels';
+      otherWheels.forEach(([id, other]) => {
+        const opt = document.createElement('option');
+        opt.value = id; opt.textContent = other.title || id;
+        if (wc.defaultTrigger === id) opt.selected = true;
+        wGroup.appendChild(opt);
+      });
+      sel.appendChild(wGroup);
+    }
+
+    sel.onchange = () => { wc.defaultTrigger = sel.value; saveConfig(); };
+  }
+
+  function rebuildDefaultSound() {
+    const wc = selectedWheelConfig();
+    if (!wc) return;
+    const sel = document.getElementById('defaultSoundSel');
+    const prevBtn = document.getElementById('defaultSoundPreview');
+    const volSlider = document.getElementById('defaultVolSlider');
+    const volLabel = document.getElementById('defaultVolLabel');
+    sel.length = 1;
+    availableSounds.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f; opt.textContent = f.replace(/\.[^.]+$/, '');
+      if (wc.defaultSound === f) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = () => { wc.defaultSound = sel.value; saveConfig(); };
+    volSlider.value = wc.defaultVolume != null ? wc.defaultVolume : 100;
+    volLabel.textContent = volSlider.value + '%';
+    volSlider.oninput = () => {
+      volLabel.textContent = volSlider.value + '%';
+      wc.defaultVolume = parseInt(volSlider.value);
+      saveConfig();
+    };
+    prevBtn.onclick = () => {
+      const v = parseInt(volSlider.value) / 100;
+      if (sel.value) { playSoundFile(sel.value, v); }
+      else { playJingle(v); }
+    };
+  }
+
+  function rebuildDefaultFont() {
+    const wc = selectedWheelConfig();
+    if (!wc) return;
+    const slider = document.getElementById('defaultFontSlider');
+    const label = document.getElementById('defaultFontLabel');
+    slider.value = wc.defaultFontSize != null ? wc.defaultFontSize : 18;
+    label.textContent = slider.value + 'px';
+    slider.oninput = () => {
+      label.textContent = slider.value + 'px';
+      wc.defaultFontSize = parseInt(slider.value);
+      saveConfig();
+      if (selectedWheelId === config.activeWheelId) {
+        mainWheel.invalidateLayout();
+        mainWheel.draw();
+      }
+    };
+  }
+
+  function rebuildEntryConfig() {
+    const wc = selectedWheelConfig();
+    if (!wc) return;
+    const names = getNames();
+    entryConfigList.innerHTML = '';
+    const otherWheels = Object.entries(config.wheels).filter(([id]) => id !== selectedWheelId);
+
+    names.forEach(name => {
+      const row = document.createElement('div');
+      row.className = 'config-entry';
+
+      const label = document.createElement('span');
+      label.className = 'config-entry-name';
+      label.textContent = name;
+      label.title = name;
+
+      // sound dropdown
+      const soundSel = document.createElement('select');
+      soundSel.title = 'Win sound';
+      const noneOpt = document.createElement('option');
+      noneOpt.value = ''; noneOpt.textContent = 'Default';
+      soundSel.appendChild(noneOpt);
+      availableSounds.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f; opt.textContent = f.replace(/\.[^.]+$/, '');
+        if (wc.sounds[name] === f) opt.selected = true;
+        soundSel.appendChild(opt);
+      });
+      soundSel.addEventListener('change', () => {
+        if (soundSel.value) wc.sounds[name] = soundSel.value;
+        else delete wc.sounds[name];
+        saveConfig();
+      });
+
+      // volume slider
+      const vol = document.createElement('input');
+      vol.type = 'range'; vol.min = 0; vol.max = 100;
+      vol.className = 'vol-slider';
+      vol.value = wc.volumes[name] != null ? wc.volumes[name] : (wc.defaultVolume != null ? wc.defaultVolume : 100);
+      vol.title = 'Volume';
+      const volLabel = document.createElement('span');
+      volLabel.className = 'vol-label';
+      volLabel.textContent = vol.value + '%';
+      vol.addEventListener('input', () => {
+        volLabel.textContent = vol.value + '%';
+        wc.volumes[name] = parseInt(vol.value);
+        saveConfig();
+      });
+
+      // preview button
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'preview-btn';
+      prevBtn.textContent = '\u25B6';
+      prevBtn.title = 'Preview sound';
+      prevBtn.addEventListener('click', () => {
+        const file = soundSel.value || wc.defaultSound;
+        if (file) { playSoundFile(file, parseInt(vol.value) / 100); }
+        else { playJingle(parseInt(vol.value) / 100); }
+      });
+
+      // font size: default/custom toggle + slider
+      const hasCustomFont = wc.fontSizes[name] != null;
+      const fsSel = document.createElement('select');
+      fsSel.title = 'Font size mode';
+      const fsOptDef = document.createElement('option');
+      fsOptDef.value = 'default'; fsOptDef.textContent = 'Default';
+      const fsOptCust = document.createElement('option');
+      fsOptCust.value = 'custom'; fsOptCust.textContent = 'Custom';
+      if (hasCustomFont) fsOptCust.selected = true;
+      fsSel.appendChild(fsOptDef);
+      fsSel.appendChild(fsOptCust);
+
+      const fs = document.createElement('input');
+      fs.type = 'range'; fs.min = 6; fs.max = 72;
+      fs.className = 'fs-slider';
+      fs.value = hasCustomFont ? wc.fontSizes[name] : (wc.defaultFontSize != null ? wc.defaultFontSize : 18);
+      fs.title = 'Font size';
+      const fsLabel = document.createElement('span');
+      fsLabel.className = 'fs-label';
+      fsLabel.textContent = fs.value + 'px';
+
+      // Hide slider when default
+      fs.style.display = hasCustomFont ? '' : 'none';
+      fsLabel.style.display = hasCustomFont ? '' : 'none';
+
+      fsSel.addEventListener('change', () => {
+        if (fsSel.value === 'custom') {
+          fs.style.display = ''; fsLabel.style.display = '';
+          wc.fontSizes[name] = parseInt(fs.value);
+        } else {
+          fs.style.display = 'none'; fsLabel.style.display = 'none';
+          delete wc.fontSizes[name];
+        }
+        saveConfig();
+        if (selectedWheelId === config.activeWheelId) {
+          mainWheel.invalidateLayout();
+          mainWheel.draw();
+        }
+      });
+
+      fs.addEventListener('input', () => {
+        fsLabel.textContent = fs.value + 'px';
+        wc.fontSizes[name] = parseInt(fs.value);
+        saveConfig();
+        if (selectedWheelId === config.activeWheelId) {
+          mainWheel.invalidateLayout();
+          mainWheel.draw();
+        }
+      });
+
+      // trigger dropdown (actions + sub-wheels)
+      const swSel = document.createElement('select');
+      swSel.title = 'Trigger';
+      const swNone = document.createElement('option');
+      swNone.value = ''; swNone.textContent = 'Use Default';
+      swSel.appendChild(swNone);
+
+      const swExplicitNone = document.createElement('option');
+      swExplicitNone.value = '__none'; swExplicitNone.textContent = 'No trigger';
+      if (wc.triggers[name] === '__none') swExplicitNone.selected = true;
+      swSel.appendChild(swExplicitNone);
+
+      // Action triggers
+      const actGroup = document.createElement('optgroup');
+      actGroup.label = 'Actions';
+      [['__add_entry', 'Add Entry'], ['__remove_entry', 'Remove Entry'], ['__spin_again', 'Spin Again']].forEach(([val, lbl]) => {
+        const opt = document.createElement('option');
+        opt.value = val; opt.textContent = lbl;
+        if (wc.triggers[name] === val) opt.selected = true;
+        actGroup.appendChild(opt);
+      });
+      swSel.appendChild(actGroup);
+
+      // Sub-wheel triggers
+      if (otherWheels.length) {
+        const wGroup = document.createElement('optgroup');
+        wGroup.label = 'Sub-Wheels';
+        otherWheels.forEach(([id, other]) => {
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = other.title || id;
+          if (wc.triggers[name] === id) opt.selected = true;
+          wGroup.appendChild(opt);
+        });
+        swSel.appendChild(wGroup);
+      }
+
+      swSel.addEventListener('change', () => {
+        if (swSel.value) wc.triggers[name] = swSel.value;
+        else delete wc.triggers[name];
+        saveConfig();
+      });
+
+      // Helper to build a labeled row
+      function makeRow(labelText, ...children) {
+        const r = document.createElement('div');
+        r.className = 'config-entry-row';
+        const lbl = document.createElement('span');
+        lbl.className = 'config-entry-row-label';
+        lbl.textContent = labelText;
+        r.appendChild(lbl);
+        children.forEach(c => r.appendChild(c));
+        return r;
+      }
+
+      // weight slider
+      const wt = document.createElement('input');
+      wt.type = 'range'; wt.min = 1; wt.max = 10; wt.step = 1;
+      wt.className = 'vol-slider';
+      wt.value = wc.entryWeights[name] != null ? wc.entryWeights[name] : 1;
+      wt.title = 'Weight (chance multiplier)';
+      const wtLabel = document.createElement('span');
+      wtLabel.className = 'vol-label';
+      wtLabel.textContent = wt.value + 'x';
+      wt.addEventListener('input', () => {
+        wtLabel.textContent = wt.value + 'x';
+        const v = parseInt(wt.value);
+        if (v === 1) delete wc.entryWeights[name];
+        else wc.entryWeights[name] = v;
+        saveConfig();
+        if (selectedWheelId === config.activeWheelId) {
+          mainWheel.entryWeights = wc.entryWeights;
+          mainWheel.invalidateLayout();
+          mainWheel.draw();
+        }
+      });
+
+      row.appendChild(label);
+      row.appendChild(makeRow('Sound', soundSel, vol, volLabel, prevBtn));
+      row.appendChild(makeRow('Font', fsSel, fs, fsLabel));
+      row.appendChild(makeRow('Weight', wt, wtLabel));
+      row.appendChild(makeRow('Trigger', swSel));
+      entryConfigList.appendChild(row);
+    });
+  }
+
+  // ── Action Modal ──
+  const actionOverlay = document.getElementById('actionModal');
+  const actionTitle = document.getElementById('actionTitle');
+  const actionDesc = document.getElementById('actionDesc');
+  const actionBody = document.getElementById('actionBody');
+  const actionConfirm = document.getElementById('actionConfirm');
+  const actionCancel = document.getElementById('actionCancel');
+  let actionCleanup = null;
+
+  function showActionModal(title, desc, bodyHTML, onConfirm, onCancel) {
+    actionTitle.textContent = title;
+    actionDesc.textContent = desc;
+    actionBody.innerHTML = bodyHTML;
+    actionOverlay.classList.add('show');
+    if (actionCleanup) actionCleanup();
+    const confirmHandler = () => {
+      actionOverlay.classList.remove('show');
+      cleanup();
+      if (onConfirm) onConfirm();
+    };
+    const cancelHandler = () => {
+      actionOverlay.classList.remove('show');
+      cleanup();
+      if (onCancel) onCancel();
+    };
+    function cleanup() {
+      actionConfirm.removeEventListener('click', confirmHandler);
+      actionCancel.removeEventListener('click', cancelHandler);
+      actionCleanup = null;
+    }
+    actionConfirm.addEventListener('click', confirmHandler);
+    actionCancel.addEventListener('click', cancelHandler);
+    actionCleanup = cleanup;
+    // Focus the first input/select if present
+    const focusEl = actionBody.querySelector('input, select');
+    if (focusEl) setTimeout(() => focusEl.focus(), 100);
+  }
+
+  function handleAddEntry(wheelId) {
+    showActionModal(
+      'Add an Entry',
+      'You must add a new entry to the wheel!',
+      '<input type="text" id="actionInput" placeholder="Enter new name..." />',
+      () => {
+        const input = document.getElementById('actionInput');
+        const val = input ? input.value.trim() : '';
+        if (!val) return;
+        const wc = config.wheels[wheelId];
+        if (!wc) return;
+        wc.entries = wc.entries ? wc.entries + '\n' + val : val;
+        if (wheelId === selectedWheelId) {
+          textarea.value = wc.entries;
+          updateNames();
+        } else {
+          saveConfig();
+        }
+      }
+    );
+    // Allow Enter key to confirm
+    setTimeout(() => {
+      const input = document.getElementById('actionInput');
+      if (input) input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') actionConfirm.click();
+      });
+    }, 50);
+  }
+
+  function handleRemoveEntry(wheelId) {
+    const wc = config.wheels[wheelId];
+    if (!wc) return;
+    const entries = (wc.entries || '').split('\n').map(s => s.trim()).filter(Boolean);
+    if (entries.length === 0) return;
+    const options = entries.map(e => `<option value="${e.replace(/"/g, '&quot;')}">${e}</option>`).join('');
+    showActionModal(
+      'Remove an Entry',
+      'You must remove an entry from the wheel!',
+      `<select id="actionSelect">${options}</select>`,
+      () => {
+        const sel = document.getElementById('actionSelect');
+        const val = sel ? sel.value : '';
+        if (!val) return;
+        // Remove first occurrence of the entry
+        const lines = (wc.entries || '').split('\n');
+        let removed = false;
+        const newLines = lines.filter(l => {
+          if (!removed && l.trim() === val) { removed = true; return false; }
+          return true;
+        });
+        wc.entries = newLines.join('\n');
+        // Clean up sound/volume/trigger/fontSize refs for this entry if it no longer exists
+        const remaining = newLines.map(s => s.trim()).filter(Boolean);
+        if (!remaining.includes(val)) {
+          delete wc.sounds[val];
+          delete wc.volumes[val];
+          delete wc.triggers[val];
+          delete wc.fontSizes[val];
+          delete wc.entryWeights[val];
+        }
+        if (wheelId === selectedWheelId) {
+          textarea.value = wc.entries;
+          updateNames();
+        } else {
+          saveConfig();
+        }
+      }
+    );
+  }
+
+  function handleSpinAgain(winner, wheelId) {
+    // Play the win sound for the spin-again entry, then re-spin
+    playWinSound(winner, wheelId);
+    showToast(winner, 'Spin Again!');
+    startConfetti();
+    setTimeout(() => {
+      hideToast();
+      stopConfetti();
+      doMainSpin();
+    }, 1500);
+  }
+
+  // ── Main Spin ──
+  function doMainSpin() {
+    if (mainWheel.spinning || mainWheel.names.length < 2) return;
+    clearSubWheels();
+    resizeAllWheels();
+    spinBtn.disabled = true;
+    const wheelId = config.activeWheelId;
+    mainWheel.spin((winner) => {
+      spinBtn.disabled = false;
+      advanceCD(winner);
+      applyCD(winner);
+      mainWheel.invalidateLayout();
+
+      const wc = config.wheels[wheelId];
+      const perEntry = wc && wc.triggers && wc.triggers[winner];
+      const trigger = perEntry === '__none' ? '' : (perEntry || (wc && wc.defaultTrigger) || '');
+
+      if (trigger === '__add_entry') {
+        playWinSound(winner, wheelId);
+        showToast(winner, 'Add Entry!');
+        startConfetti();
+        setTimeout(() => { hideToast(); stopConfetti(); handleAddEntry(wheelId); }, 1200);
+      } else if (trigger === '__remove_entry') {
+        playWinSound(winner, wheelId);
+        showToast(winner, 'Remove Entry!');
+        startConfetti();
+        setTimeout(() => { hideToast(); stopConfetti(); handleRemoveEntry(wheelId); }, 1200);
+      } else if (trigger === '__spin_again') {
+        handleSpinAgain(winner, wheelId);
+      } else if (trigger && config.wheels[trigger]) {
+        // Sub-wheel trigger
+        showToast(winner, 'Winner');
+        startConfetti();
+        playWinSound(winner, wheelId);
+        launchSubWheel(trigger, new Set([wheelId]));
+      } else {
+        showWinner(winner, 'Winner');
+        playWinSound(winner, wheelId);
+      }
+    });
+  }
+
+  // ── Sub-wheel ──
+  function launchSubWheel(wheelId, visited) {
+    if (!visited) visited = new Set();
+    if (visited.has(wheelId)) return;
+    visited.add(wheelId);
+
+    const wc = config.wheels[wheelId];
+    if (!wc) return;
+    const entries = (wc.entries || '').split('\n').map(s => s.trim()).filter(Boolean);
+    if (entries.length < 2) return;
+
+    const { cell, wheel } = createWheelCell(wc.title || wheelId);
+    syncWheelConfig(wheel, wc);
+    wheel.names = entries;
+    wheel.rotation = 0;
+    wheel.cooldowns.clear();
+    wheel.invalidateLayout();
+
+    // Let grid reflow, then resize and spin
+    setTimeout(() => {
+      resizeAllWheels();
+      wheel.draw();
+      setTimeout(() => {
+        wheel.spin((subWinner) => {
+          playWinSound(subWinner, wheelId);
+          const subPerEntry = wc.triggers && wc.triggers[subWinner];
+          const nextTriggerId = subPerEntry === '__none' ? '' : (subPerEntry || wc.defaultTrigger || '');
+          const canChain = nextTriggerId && config.wheels[nextTriggerId] && !visited.has(nextTriggerId);
+          hideToast();
+          if (canChain) {
+            showToast(subWinner, wc.title || 'Sub-Wheel');
+            startConfetti();
+            setTimeout(() => {
+              hideToast();
+              stopConfetti();
+              launchSubWheel(nextTriggerId, visited);
+            }, 1200);
+          } else {
+            showWinner(subWinner, wc.title || 'Sub-Wheel');
+          }
+        });
+      }, 600);
+    }, 100);
+  }
+
+  // ── Wheel Toast (inline overlay for trigger wins) ──
+  const wheelToast = document.getElementById('wheelToast');
+  let toastTimer = null;
+
+  function showToast(name, label) {
+    wheelToast.querySelector('.wheel-toast-label').textContent = label || 'Winner';
+    wheelToast.querySelector('.wheel-toast-name').textContent = name;
+    wheelToast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 6000);
+  }
+  function hideToast() {
+    wheelToast.classList.remove('show');
+    clearTimeout(toastTimer);
+  }
+  wheelToast.addEventListener('click', hideToast);
+
+  // ── Winner Modal + Confetti ──
+  let modalCb = null;
+  function showWinner(name, label, onClose) {
+    winnerLabelEl.textContent = label || 'Winner';
+    winnerEl.textContent = name;
+    modal.classList.add('show');
+    modalCb = onClose || null;
+    startConfetti();
+  }
+
+  closeBtn.addEventListener('click', () => {
+    modal.classList.remove('show');
+    stopConfetti();
+    if (modalCb) { const cb = modalCb; modalCb = null; cb(); }
+  });
+
+  // ── Confetti ──
+  let confettiTimer = null;
+  function startConfetti() {
+    stopConfetti();
+    const frag = document.createDocumentFragment();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    for (let i = 0; i < 150; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      const x = Math.random()*vw, sy = -20-Math.random()*vh*0.5;
+      const ey = vh+40, drift = (Math.random()-0.5)*200, sp = (Math.random()-0.5)*1080;
+      const dur = 2+Math.random()*2, delay = Math.random()*0.8;
+      el.style.cssText = `left:${x}px;top:${sy}px;width:${6+Math.random()*6}px;height:${10+Math.random()*8}px;background:${COLORS[Math.floor(Math.random()*COLORS.length)]};border-radius:${Math.random()>0.5?'50%':'2px'};animation-duration:${dur}s;animation-delay:${delay}s;`;
+      el.animate([
+        {transform:'translate(0,0) rotate(0deg)'},
+        {transform:`translate(${drift}px,${ey-sy}px) rotate(${sp}deg)`}
+      ],{duration:dur*1000,delay:delay*1000,easing:'cubic-bezier(0.25,0,0.5,1)',fill:'forwards'});
+      frag.appendChild(el);
+    }
+    confettiContainer.appendChild(frag);
+    confettiTimer = setTimeout(stopConfetti, 5000);
+  }
+  function stopConfetti() {
+    if (confettiTimer) { clearTimeout(confettiTimer); confettiTimer = null; }
+    confettiContainer.innerHTML = '';
+  }
+
+  // ── Sidebar Actions ──
+  shuffleBtn.addEventListener('click', () => {
+    const arr = getNames();
+    for (let i = arr.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+    textarea.value = arr.join('\n');
+    updateNames();
+  });
+  resetBtn.addEventListener('click', () => { textarea.value = ''; updateNames(); });
+
+  // ── Sidebar Resize ──
+  const sidebar = document.getElementById('sidebar');
+  const resizeHandle = document.getElementById('sidebarResize');
+  let resizing = false;
+  resizeHandle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    resizing = true;
+    resizeHandle.classList.add('active');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!resizing) return;
+    const newWidth = window.innerWidth - e.clientX;
+    sidebar.style.width = Math.max(260, Math.min(newWidth, window.innerWidth * 0.6)) + 'px';
+    resizeAllWheels();
+  });
+  window.addEventListener('mouseup', () => {
+    if (!resizing) return;
+    resizing = false;
+    resizeHandle.classList.remove('active');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // ── SHOP ──
+  // ══════════════════════════════════════════════════════════════
+
+  const shopItemsEl = document.getElementById('shopItems');
+  const shopEditToggle = document.getElementById('shopEditToggle');
+  const shopEditForm = document.getElementById('shopEditForm');
+  let shopEditMode = false;
+
+  function ensureShop() { if (!config.shop) config.shop = []; }
+
+  function rebuildShopUI() {
+    ensureShop();
+    shopItemsEl.innerHTML = '';
+
+    // Show/hide edit button (host only)
+    shopEditToggle.style.display = (mp.connected && mp.isHost) ? '' : 'none';
+
+    if (config.shop.length === 0 && !shopEditMode) {
+      shopItemsEl.innerHTML = '<div class="shop-empty">No items yet' + (mp.isHost ? ' — click Edit to add some' : '') + '</div>';
+      return;
+    }
+
+    if (shopEditMode) {
+      // Edit mode: show items with delete buttons
+      config.shop.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = 'shop-item-edit-row';
+        const nameEl = document.createElement('span');
+        nameEl.className = 'shop-item-name';
+        nameEl.textContent = item.name;
+        row.appendChild(nameEl);
+
+        const costEl = document.createElement('span');
+        costEl.className = 'shop-item-cost';
+        costEl.textContent = '$' + item.cost;
+        row.appendChild(costEl);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'shop-item-del';
+        delBtn.textContent = 'X';
+        delBtn.addEventListener('click', () => {
+          config.shop.splice(idx, 1);
+          saveConfig();
+          rebuildShopUI();
+        });
+        row.appendChild(delBtn);
+
+        shopItemsEl.appendChild(row);
+      });
+    } else {
+      // Player mode: show purchasable buttons
+      const me = mp.players.find(p => p.name === mp.playerName);
+      const myBalance = me ? me.points : 0;
+
+      config.shop.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'shop-item-btn';
+        btn.disabled = myBalance < item.cost;
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'shop-item-name';
+        nameEl.textContent = item.name;
+        btn.appendChild(nameEl);
+
+        const actionLabel = document.createElement('span');
+        actionLabel.className = 'shop-item-action';
+        if (item.action === 'inventory') {
+          actionLabel.textContent = 'Goes to inventory';
+        } else {
+          const wheelTitle = config.wheels[item.wheelId] ? config.wheels[item.wheelId].title : 'Wheel';
+          if (item.action === 'add_entry') actionLabel.textContent = 'Add to ' + wheelTitle;
+          else if (item.action === 'remove_entry') actionLabel.textContent = 'Remove from ' + wheelTitle;
+        }
+        btn.appendChild(actionLabel);
+
+        const costEl = document.createElement('span');
+        costEl.className = 'shop-item-cost';
+        costEl.textContent = '$' + item.cost;
+        btn.appendChild(costEl);
+
+        btn.addEventListener('click', () => {
+          mp.send({ type: 'shop_purchase', payload: { itemIndex: config.shop.indexOf(item) } });
+        });
+
+        shopItemsEl.appendChild(btn);
+      });
+    }
+  }
+
+  shopEditToggle.addEventListener('click', () => {
+    shopEditMode = !shopEditMode;
+    shopEditToggle.classList.toggle('active', shopEditMode);
+    shopEditToggle.textContent = shopEditMode ? 'Done' : 'Edit';
+    shopEditForm.classList.toggle('visible', shopEditMode);
+    rebuildShopUI();
+    // Populate wheel dropdown
+    if (shopEditMode) { rebuildShopWheelSelect(); rebuildShopSoundSelect(); }
+  });
+
+  function rebuildShopSoundSelect() {
+    const sel = document.getElementById('shopNewSound');
+    sel.length = 1;
+    availableSounds.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f; opt.textContent = f.replace(/\.[^.]+$/, '');
+      sel.appendChild(opt);
+    });
+  }
+
+  document.getElementById('shopSoundPreview').addEventListener('click', () => {
+    const sel = document.getElementById('shopNewSound');
+    if (sel.value) playSoundFile(sel.value, 1);
+  });
+
+  function rebuildShopWheelSelect() {
+    const sel = document.getElementById('shopNewWheel');
+    sel.innerHTML = '';
+    for (const [id, wc] of Object.entries(config.wheels)) {
+      const opt = document.createElement('option');
+      opt.value = id; opt.textContent = wc.title || id;
+      sel.appendChild(opt);
+    }
+  }
+
+  // Show/hide item type selector based on action
+  const shopNewAction = document.getElementById('shopNewAction');
+  const shopNewItemType = document.getElementById('shopNewItemType');
+  const shopNewWheel = document.getElementById('shopNewWheel');
+  shopNewAction.addEventListener('change', () => {
+    const isInv = shopNewAction.value === 'inventory';
+    shopNewItemType.style.display = isInv ? '' : 'none';
+    shopNewWheel.style.display = isInv ? 'none' : '';
+  });
+
+  document.getElementById('shopAddBtn').addEventListener('click', () => {
+    const name = document.getElementById('shopNewName').value.trim();
+    const cost = parseInt(document.getElementById('shopNewCost').value) || 0;
+    const action = shopNewAction.value;
+    const wheelId = shopNewWheel.value;
+    if (!name) return;
+    ensureShop();
+    const item = { name, cost, action, id: 'shop_' + Date.now() };
+    const shopSound = document.getElementById('shopNewSound').value;
+    if (shopSound) item.sound = shopSound;
+    if (action === 'inventory') {
+      item.itemType = shopNewItemType.value;
+    } else {
+      item.wheelId = wheelId;
+    }
+    config.shop.push(item);
+    document.getElementById('shopNewName').value = '';
+    document.getElementById('shopNewCost').value = '';
+    saveConfig();
+    rebuildShopUI();
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // ── LEFT PANEL: INVENTORY + BOOST ──
+  // ══════════════════════════════════════════════════════════════
+
+  const leftPanel = document.getElementById('leftPanel');
+  const invSlots = document.getElementById('invSlots');
+
+  function getMyInventory() {
+    const me = mp.players.find(p => p.name === mp.playerName);
+    return me ? (me.inventory || []) : [];
+  }
+
+  function rebuildHotbar() {
+    const inv = getMyInventory();
+    invSlots.innerHTML = '';
+
+    if (inv.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'inv-empty';
+      empty.textContent = 'Empty — buy items from the Shop';
+      invSlots.appendChild(empty);
+    } else {
+      // Stack items by itemId
+      const stacks = [];
+      const stackMap = {};
+      inv.forEach(item => {
+        const key = item.itemId || item.id;
+        if (stackMap[key]) {
+          stackMap[key].count++;
+          stackMap[key].ids.push(item.id);
+        } else {
+          const stack = { item, count: 1, ids: [item.id], key };
+          stackMap[key] = stack;
+          stacks.push(stack);
+        }
+      });
+
+      stacks.forEach((stack, idx) => {
+        const item = stack.item;
+        const slot = document.createElement('div');
+        slot.className = 'inv-slot';
+        slot.dataset.invId = stack.ids[0];
+
+        const canUse = mainWheel.spinning && !isSpinNearEnd();
+        if (!canUse) slot.classList.add('disabled');
+
+        const icon = document.createElement('span');
+        icon.className = 'inv-icon';
+        icon.textContent = item.itemType === 'boost' ? '\u26A1' : '\uD83D\uDCE6';
+        slot.appendChild(icon);
+
+        const info = document.createElement('div');
+        info.className = 'inv-info';
+        const nameEl = document.createElement('div');
+        nameEl.className = 'inv-name';
+        nameEl.textContent = item.name + (stack.count > 1 ? ' x' + stack.count : '');
+        info.appendChild(nameEl);
+        const typeEl = document.createElement('div');
+        typeEl.className = 'inv-type';
+        typeEl.textContent = item.itemType === 'boost' ? 'Wheel Boost' : 'Item';
+        info.appendChild(typeEl);
+        slot.appendChild(info);
+
+        if (idx < 9) {
+          const key = document.createElement('span');
+          key.className = 'inv-key';
+          key.textContent = (idx + 1).toString();
+          slot.appendChild(key);
+        }
+
+        slot.addEventListener('click', () => useInventoryItem(stack.ids[0]));
+        invSlots.appendChild(slot);
+      });
+    }
+
+    leftPanel.classList.toggle('visible', mp.connected);
+  }
+
+  // Track spin timing to prevent boost in last 0.5s
+  let spinStartTime = 0;
+  let spinDurationMs = 0;
+  let activeBoostOffset = 0;
+  let boostTarget = 0;
+
+  function applyWheelBoost(amount) {
+    boostTarget += amount;
+  }
+
+  function isSpinNearEnd() {
+    if (!mainWheel.spinning || spinDurationMs === 0) return true;
+    const elapsed = performance.now() - spinStartTime;
+    return elapsed > spinDurationMs - 500;
+  }
+
+  function useInventoryItem(inventoryId) {
+    if (!mp.connected) return;
+    if (!mainWheel.spinning) return;
+    if (isSpinNearEnd()) return;
+    mp.send({ type: 'use_item', payload: { inventoryId } });
+  }
+
+  // Keyboard shortcuts: 1-9 for inventory slots (uses stacked slots)
+  document.addEventListener('keydown', (e) => {
+    const num = parseInt(e.key);
+    if (num >= 1 && num <= 9) {
+      const slots = invSlots.querySelectorAll('.inv-slot');
+      const slot = slots[num - 1];
+      if (slot && slot.dataset.invId) useInventoryItem(slot.dataset.invId);
+    }
+  });
+
+  // Periodically refresh inventory enabled/disabled state during spin
+  let hotbarRefreshInterval = null;
+  function startHotbarRefresh() {
+    if (hotbarRefreshInterval) return;
+    hotbarRefreshInterval = setInterval(() => {
+      const slots = invSlots.querySelectorAll('.inv-slot');
+      const canUse = mainWheel.spinning && !isSpinNearEnd();
+      slots.forEach(s => s.classList.toggle('disabled', !canUse));
+      if (!mainWheel.spinning) {
+        clearInterval(hotbarRefreshInterval);
+        hotbarRefreshInterval = null;
+        slots.forEach(s => s.classList.add('disabled'));
+      }
+    }, 100);
+  }
+
+  // ── Left panel: Chance Enhancer (boost) ──
+  const lpBoostEntry = document.getElementById('lpBoostEntry');
+  const lpBoostSlider = document.getElementById('lpBoostSlider');
+  const lpBoostMax = document.getElementById('lpBoostMax');
+  const lpBoostCost = document.getElementById('lpBoostCost');
+  const lpBoostImpact = document.getElementById('lpBoostImpact');
+  const lpBoostBtn = document.getElementById('lpBoostBtn');
+  const lpBoostStatus = document.getElementById('lpBoostStatus');
+
+  function refreshBoostPanel() {
+    // Populate entry dropdown from active wheel (using index as value)
+    const wc = config.wheels[config.activeWheelId];
+    lpBoostEntry.innerHTML = '<option value="">Pick entry...</option>';
+    if (wc) {
+      const entries = (wc.entries || '').split('\n').map(s => s.trim()).filter(Boolean);
+      const seen = {};
+      entries.forEach((e, idx) => {
+        seen[e] = (seen[e] || 0) + 1;
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = seen[e] > 1 ? e + ' (#' + seen[e] + ')' : e;
+        opt.dataset.entryName = e;
+        lpBoostEntry.appendChild(opt);
+      });
+    }
+    // Set max to player's balance
+    const me = mp.players.find(p => p.name === mp.playerName);
+    const balance = me ? me.points : 0;
+    lpBoostSlider.max = balance;
+    lpBoostMax.textContent = '$' + balance;
+    lpBoostSlider.value = 0;
+    lpBoostCost.textContent = '$0';
+    lpBoostImpact.textContent = '+0%';
+    lpBoostStatus.textContent = '';
+    lpBoostBtn.disabled = false;
+  }
+
+  lpBoostSlider.addEventListener('input', () => {
+    const cost = parseInt(lpBoostSlider.value) || 0;
+    lpBoostCost.textContent = '$' + cost;
+    const selectedIdx = lpBoostEntry.value;
+    if (selectedIdx === '' || cost === 0) { lpBoostImpact.textContent = '+0%'; return; }
+    const idx = parseInt(selectedIdx);
+    const wc = config.wheels[config.activeWheelId];
+    if (!wc) return;
+    const entries = (wc.entries || '').split('\n').map(s => s.trim()).filter(Boolean);
+    if (idx >= entries.length) return;
+    let totalWeight = 0;
+    const ew = wc.entryWeights || {};
+    entries.forEach((e, i) => {
+      let w = ew[e] != null ? ew[e] : 1;
+      const idxBoost = ew['__idx_' + i] || 0;
+      totalWeight += w + idxBoost;
+    });
+    const entryName = entries[idx];
+    const baseW = ew[entryName] != null ? ew[entryName] : 1;
+    const existingBoost = ew['__idx_' + idx] || 0;
+    const entryWeight = baseW + existingBoost;
+    if (totalWeight === 0) return;
+    const addedWeight = cost * 0.1;
+    const oldChance = (entryWeight / totalWeight) * 100;
+    const newChance = ((entryWeight + addedWeight) / (totalWeight + addedWeight)) * 100;
+    const delta = newChance - oldChance;
+    lpBoostImpact.textContent = `${oldChance.toFixed(1)}% \u2192 ${newChance.toFixed(1)}% (+${delta.toFixed(1)}%)`;
+  });
+
+  lpBoostEntry.addEventListener('change', () => {
+    lpBoostSlider.dispatchEvent(new Event('input'));
+  });
+
+  lpBoostBtn.addEventListener('click', () => {
+    const selectedIdx = lpBoostEntry.value;
+    const cost = parseInt(lpBoostSlider.value) || 0;
+    if (selectedIdx === '') { lpBoostStatus.textContent = 'Pick an entry'; return; }
+    if (cost <= 0) { lpBoostStatus.textContent = 'Slide to set amount'; return; }
+    const idx = parseInt(selectedIdx);
+    const wc = config.wheels[config.activeWheelId];
+    const entries = wc ? (wc.entries || '').split('\n').map(s => s.trim()).filter(Boolean) : [];
+    const entryName = entries[idx] || '';
+    mp.send({ type: 'boost', payload: { entry: entryName, entryIndex: idx, amount: cost, wheelId: config.activeWheelId } });
+    lpBoostBtn.disabled = true;
+    lpBoostStatus.textContent = `Boosting "${entryName}" for $${cost}`;
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // ── MULTIPLAYER ──
+  // ══════════════════════════════════════════════════════════════
+
+  // ── Connection UI ──
+  const connOverlay = document.getElementById('connectionOverlay');
+  const connError = document.getElementById('connError');
+  const statusBar = document.getElementById('statusBar');
+  const statusDot = document.getElementById('statusDot');
+  const statusName = document.getElementById('statusName');
+  const statusHostBadge = document.getElementById('statusHostBadge');
+  const statusText = document.getElementById('statusText');
+  const spinInitiator = document.getElementById('spinInitiator');
+
+  // Tab switching for connection overlay
+  document.querySelectorAll('.conn-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.conn-tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('hostForm').classList.toggle('active', btn.dataset.mode === 'host');
+      document.getElementById('joinForm').classList.toggle('active', btn.dataset.mode === 'join');
+      connError.textContent = '';
+    });
+  });
+
+  document.getElementById('startHostBtn').addEventListener('click', () => {
+    const name = document.getElementById('hostNameInput').value.trim();
+    if (!name) { connError.textContent = 'Please enter your name'; return; }
+    const port = parseInt(document.getElementById('portInput').value) || 8080;
+    // Connect to self (server must already be running)
+    connectToServer('localhost', port, name);
+  });
+
+  document.getElementById('connectBtn').addEventListener('click', () => {
+    const name = document.getElementById('joinNameInput').value.trim();
+    if (!name) { connError.textContent = 'Please enter your name'; return; }
+    const addr = document.getElementById('joinAddress').value.trim();
+    if (!addr) { connError.textContent = 'Please enter the server address'; return; }
+    const parts = addr.split(':');
+    const host = parts[0];
+    const port = parseInt(parts[1]) || 8080;
+    connectToServer(host, port, name);
+  });
+
+  document.getElementById('disconnectBtn').addEventListener('click', () => {
+    if (mp.ws) mp.ws.close();
+    mp.connected = false;
+    mp.ws = null;
+    mp.reconnectAttempts = mp.maxReconnect; // prevent auto-reconnect
+    showConnectionScreen();
+  });
+
+  function connectToServer(host, port, name) {
+    connError.textContent = '';
+    mp.lastHost = host;
+    mp.lastPort = port;
+    mp.playerName = name;
+
+    const btns = connOverlay.querySelectorAll('.conn-submit');
+    btns.forEach(b => b.disabled = true);
+
+    try {
+      mp.ws = new WebSocket(`ws://${host}:${port}`);
+    } catch(e) {
+      connError.textContent = 'Invalid address';
+      btns.forEach(b => b.disabled = false);
+      return;
+    }
+
+    mp.ws.onopen = () => {
+      mp.reconnectAttempts = 0;
+      mp.send({ type: 'join', payload: { name } });
+    };
+
+    mp.ws.onmessage = (e) => {
+      let msg;
+      try { msg = JSON.parse(e.data); } catch { return; }
+      handleServerMessage(msg);
+    };
+
+    mp.ws.onerror = () => {
+      connError.textContent = 'Connection failed';
+      btns.forEach(b => b.disabled = false);
+    };
+
+    mp.ws.onclose = () => {
+      const wasConnected = mp.connected;
+      mp.connected = false;
+      btns.forEach(b => b.disabled = false);
+
+      if (wasConnected) {
+        statusDot.className = 'status-dot disconnected';
+        statusText.textContent = 'Disconnected';
+        // Try reconnect
+        if (mp.reconnectAttempts < mp.maxReconnect) {
+          mp.reconnectAttempts++;
+          statusText.textContent = `Reconnecting (${mp.reconnectAttempts})...`;
+          statusDot.className = 'status-dot connecting';
+          setTimeout(() => connectToServer(mp.lastHost, mp.lastPort, mp.playerName), 2000 * mp.reconnectAttempts);
+        } else {
+          showConnectionScreen();
+        }
+      }
+    };
+  }
+
+  function showConnectionScreen() {
+    connOverlay.classList.remove('hidden');
+    statusBar.classList.remove('visible');
+    leftPanel.classList.remove('visible');
+    readyBar.classList.remove('visible');
+    updateConfigLock();
+  }
+
+  function hideConnectionScreen() {
+    connOverlay.classList.add('hidden');
+    statusBar.classList.add('visible');
+  }
+
+  // ── Server message handler ──
+  function handleServerMessage(msg) {
+    switch (msg.type) {
+      case 'joined': {
+        const p = msg.payload;
+        mp.connected = true;
+        mp.clientId = p.clientId;
+        mp.isHost = p.isHost;
+        mp.playerName = p.name;
+        mp.players = p.players || [];
+
+        // Apply remote config if we're joining an existing room
+        if (p.config) {
+          config = JSON.parse(JSON.stringify(p.config));
+          selectedWheelId = config.activeWheelId;
+          rebuildWheelSelector();
+          const wc = selectedWheelConfig();
+          textarea.value = wc ? wc.entries || '' : '';
+          if (wc) syncWheelConfig(mainWheel, wc);
+          mainWheel.names = getNames();
+          mainWheel.cooldowns.clear();
+          mainWheel.rotation = 0;
+          mainWheel.invalidateLayout();
+          mainWheel.draw();
+          countEl.textContent = mainWheel.names.length;
+          rebuildConfigUI();
+        }
+
+        hideConnectionScreen();
+        statusDot.className = 'status-dot';
+        statusName.textContent = mp.playerName;
+        statusHostBadge.style.display = mp.isHost ? '' : 'none';
+        statusText.textContent = `${mp.players.filter(p => p.connected).length} player(s)`;
+
+        updatePlayerListUI();
+        updateConfigLock();
+        rebuildShopUI();
+        rebuildHotbar();
+        readyBar.classList.add('visible');
+        refreshBoostPanel();
+        if (betHint) betHint.style.display = '';
+        mainWheel.canvas.style.cursor = 'pointer';
+
+        // Host pushes initial config to server so joiners get it
+        if (mp.isHost) {
+          const wc = selectedWheelConfig();
+          if (wc) wc.entries = textarea.value;
+          mp.send({ type: 'config_update', payload: { config } });
+        }
+        break;
+      }
+
+      case 'host_promoted': {
+        mp.isHost = true;
+        statusHostBadge.style.display = '';
+        updateConfigLock();
+        break;
+      }
+
+      case 'config_synced': {
+        if (mp.isHost) {
+          // Host already has the config, but still needs weight updates (e.g. boost reverts)
+          const serverConfig = msg.payload.config;
+          if (serverConfig && serverConfig.wheels) {
+            for (const [wid, wc] of Object.entries(serverConfig.wheels)) {
+              if (config.wheels[wid]) {
+                config.wheels[wid].entryWeights = wc.entryWeights || {};
+              }
+            }
+          }
+          const wcH = selectedWheelConfig();
+          if (wcH) syncWheelConfig(mainWheel, wcH);
+          mainWheel.invalidateLayout();
+          mainWheel.draw();
+          refreshBoostPanel();
+          break;
+        }
+        config = JSON.parse(JSON.stringify(msg.payload.config));
+        selectedWheelId = config.activeWheelId;
+        rebuildWheelSelector();
+        const wc = selectedWheelConfig();
+        textarea.value = wc ? wc.entries || '' : '';
+        if (wc) syncWheelConfig(mainWheel, wc);
+        mainWheel.names = getNames();
+        mainWheel.cooldowns.clear();
+        mainWheel.rotation = 0;
+        mainWheel.invalidateLayout();
+        mainWheel.draw();
+        countEl.textContent = mainWheel.names.length;
+        rebuildConfigUI();
+        rebuildShopUI();
+        refreshBoostPanel();
+        break;
+      }
+
+      case 'players_sync': {
+        mp.players = msg.payload.players || [];
+        statusText.textContent = `${mp.players.filter(p => p.connected).length} player(s)`;
+        updatePlayerListUI();
+        rebuildShopUI();
+        rebuildHotbar();
+        break;
+      }
+
+      case 'points_update': {
+        // Update local player list
+        const pu = msg.payload;
+        const pl = mp.players.find(p => p.name === pu.name);
+        if (pl) pl.points = pu.points;
+        updatePlayerListUI();
+        break;
+      }
+
+      case 'ready_phase': {
+        readyNames = new Set();
+        showReadyPhase(msg.payload.wheelId);
+        break;
+      }
+
+      case 'player_ready': {
+        readyNames.add(msg.payload.name);
+        updateReadyBarChips();
+        break;
+      }
+
+      case 'countdown_update': {
+        if (msg.payload.seconds <= 5 && !countdownSoundPlayed) {
+          countdownSoundPlayed = true;
+          playSoundFile('54321countdown.mp3', 1);
+        }
+        startClientCountdown(msg.payload.seconds);
+        break;
+      }
+
+      case 'bet_placed': {
+        break;
+      }
+
+      case 'bets_sync': {
+        allBets = msg.payload.bets || [];
+        mainWheel.draw();
+        break;
+      }
+
+      case 'boost_applied': {
+        // Force a wheel redraw for everyone (host skips config_synced)
+        const ba = msg.payload;
+        const wc2 = config.wheels[config.activeWheelId];
+        if (wc2) {
+          if (!wc2.entryWeights) wc2.entryWeights = {};
+          const key = ba.weightKey || ba.entry;
+          const current = wc2.entryWeights[key] || 0;
+          wc2.entryWeights[key] = current + ba.addedWeight;
+          syncWheelConfig(mainWheel, wc2);
+          mainWheel.invalidateLayout();
+          mainWheel.draw();
+        }
+        break;
+      }
+
+      case 'inventory_update': {
+        const iu = msg.payload;
+        const pl2 = mp.players.find(p => p.name === iu.name);
+        if (pl2) pl2.inventory = iu.inventory;
+        if (iu.name === mp.playerName) rebuildHotbar();
+        break;
+      }
+
+      case 'item_used': {
+        const iu2 = msg.payload;
+        if (iu2.itemType === 'boost' && mainWheel.spinning) {
+          applyWheelBoost(iu2.boostAmount);
+        }
+        // Flash message
+        showToast(iu2.name + ' used ' + iu2.itemName + '!', 'BOOST');
+        setTimeout(hideToast, 1500);
+        // Rebuild hotbar if it was us
+        if (iu2.name === mp.playerName) rebuildHotbar();
+        break;
+      }
+
+      case 'spin_start': {
+        hideReadyPhase();
+        handleRemoteSpin(msg.payload);
+        break;
+      }
+
+      case 'spin_finished': {
+        handleSpinFinished(msg.payload);
+        allBets = []; // clear bet chips from wheel
+        if (msg.payload.betResults && msg.payload.betResults.length > 0) {
+          showBetResults(msg.payload.betResults);
+        }
+        break;
+      }
+
+      case 'shop_purchased': {
+        const sp = msg.payload;
+        const item = sp.item;
+        // Play purchase sound if configured
+        if (item.sound) playSoundFile(item.sound, 1);
+        // Execute the action on client side
+        if (item.action === 'add_entry') {
+          showToast(sp.buyerName + ' bought: ' + item.name, 'Shop');
+          // Only host handles the action modal
+          if (mp.isHost) {
+            setTimeout(() => { hideToast(); handleAddEntry(item.wheelId); }, 800);
+          } else {
+            setTimeout(hideToast, 3000);
+          }
+        } else if (item.action === 'remove_entry') {
+          showToast(sp.buyerName + ' bought: ' + item.name, 'Shop');
+          if (mp.isHost) {
+            setTimeout(() => { hideToast(); handleRemoveEntry(item.wheelId); }, 800);
+          } else {
+            setTimeout(hideToast, 3000);
+          }
+        }
+        rebuildShopUI();
+        break;
+      }
+
+      case 'spin_rejected': {
+        spinBtn.disabled = false;
+        showToast('Spin rejected', msg.payload.reason === 'already_spinning' ? 'Already spinning!' : 'Error');
+        setTimeout(hideToast, 2000);
+        break;
+      }
+
+      case 'error': {
+        console.warn('[server]', msg.payload.message);
+        break;
+      }
+    }
+  }
+
+  // ── Config lock for non-host ──
+  function updateConfigLock() {
+    const locked = mp.connected && !mp.isHost;
+    textarea.readOnly = locked;
+    textarea.style.opacity = locked ? '0.6' : '';
+
+    // Hide configure + entries tabs entirely for non-host
+    const configTabBtn = document.querySelector('.sidebar-tabs button[data-tab="configure"]');
+    const entriesTabBtn = document.querySelector('.sidebar-tabs button[data-tab="entries"]');
+    if (configTabBtn) configTabBtn.style.display = locked ? 'none' : '';
+    if (entriesTabBtn) entriesTabBtn.style.display = locked ? 'none' : '';
+
+    // Hide wheel selector entirely (non-host can't switch wheels)
+    document.querySelector('.wheel-selector').style.display = locked ? 'none' : '';
+
+    // Hide entries editing controls
+    document.querySelectorAll('.btn-shuffle, .btn-reset').forEach(b => b.style.display = locked ? 'none' : '');
+
+    // If locked and not on shop tab, switch to shop
+    if (locked) {
+      const activeTab = document.querySelector('.sidebar-tabs button.active');
+      if (activeTab && activeTab.dataset.tab !== 'shop') {
+        const shopBtn = document.querySelector('.sidebar-tabs button[data-tab="shop"]');
+        if (shopBtn) shopBtn.click();
+      }
+    }
+
+    // Show/hide shop edit toggle based on host status
+    shopEditToggle.style.display = (mp.connected && mp.isHost) ? '' : 'none';
+  }
+
+  // ── Player list UI (Scoreboard in left panel) ──
+  const scoreboardList = document.getElementById('scoreboardList');
+
+  function updatePlayerListUI() {
+    if (!scoreboardList) return;
+    scoreboardList.innerHTML = '';
+    const sorted = [...mp.players].sort((a, b) => (b.connected ? 1 : 0) - (a.connected ? 1 : 0) || b.points - a.points);
+    sorted.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'sb-player' + (p.connected ? '' : ' disconnected');
+
+      const avatar = document.createElement('div');
+      avatar.className = 'sb-avatar';
+      avatar.textContent = p.name.charAt(0).toUpperCase();
+      if (p.color) avatar.style.background = p.color;
+      row.appendChild(avatar);
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'sb-name';
+      nameEl.textContent = p.name;
+      row.appendChild(nameEl);
+
+      if (p.isHost) {
+        const badge = document.createElement('span');
+        badge.className = 'sb-badge host';
+        badge.textContent = 'HOST';
+        row.appendChild(badge);
+      }
+      if (p.name === mp.playerName) {
+        const badge = document.createElement('span');
+        badge.className = 'sb-badge you';
+        badge.textContent = 'YOU';
+        row.appendChild(badge);
+      }
+
+      const money = document.createElement('span');
+      money.className = 'sb-money';
+      money.textContent = '$' + p.points;
+      row.appendChild(money);
+
+      scoreboardList.appendChild(row);
+    });
+
+    // Refresh boost panel max when player list updates
+    refreshBoostPanel();
+  }
+
+  // ── Ready Bar + Betting ──
+  const readyBar = document.getElementById('readyBar');
+  const readyBarBtn = document.getElementById('readyBarBtn');
+  const readyBarCountdown = document.getElementById('readyBarCountdown');
+  const readyBarPlayers = document.getElementById('readyBarPlayers');
+  const readyOverlay = document.getElementById('readyOverlay');
+  const betEntrySelect = document.getElementById('betEntry');
+  const betAmountInput = document.getElementById('betAmount');
+  const betConfirmBtn = document.getElementById('betConfirmBtn');
+  const betStatusEl = document.getElementById('betStatus');
+  const betResultsEl = document.getElementById('betResults');
+
+  let countdownInterval = null;
+  let countdownEndTime = 0;
+  let playerIsReady = false;
+  let playerHasBet = false;
+  let readyPhaseActive = false;
+  let countdownSoundPlayed = false;
+  let currentReadyWheelId = null;
+  let readyNames = new Set();
+  let allBets = []; // { playerName, color, entry, amount } synced from server
+  let betHint = null;
+  let spinChainResults = []; // accumulates { winner, wheelTitle } during sub-wheel chains
+
+  function showReadyPhase(wheelId) {
+    readyPhaseActive = true;
+    playerIsReady = false;
+    playerHasBet = false;
+    currentReadyWheelId = wheelId;
+    readyBarBtn.disabled = false;
+    readyBarBtn.classList.remove('is-ready');
+    readyBarBtn.textContent = 'READY';
+    readyBarCountdown.textContent = '';
+    readyNames = new Set();
+    updateReadyBarChips();
+  }
+
+  function hideReadyPhase() {
+    readyPhaseActive = false;
+    countdownSoundPlayed = false;
+    readyOverlay.classList.remove('show');
+    readyBarCountdown.textContent = '';
+    readyBarPlayers.innerHTML = '';
+    readyBarBtn.disabled = false;
+    readyBarBtn.classList.remove('is-ready');
+    readyBarBtn.textContent = 'READY';
+    playerIsReady = false;
+    if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+  }
+
+  function updateReadyBarChips() {
+    readyBarPlayers.innerHTML = '';
+    mp.players.filter(p => p.connected).forEach(p => {
+      const chip = document.createElement('span');
+      chip.className = 'ready-bar-chip' + (readyNames.has(p.name) ? ' is-ready' : '');
+      chip.textContent = p.name;
+      readyBarPlayers.appendChild(chip);
+    });
+  }
+
+  function startClientCountdown(seconds) {
+    countdownEndTime = Date.now() + seconds * 1000;
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+      const left = Math.max(0, Math.ceil((countdownEndTime - Date.now()) / 1000));
+      readyBarCountdown.textContent = left > 0 ? left + 's' : '';
+      if (left <= 0) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+    }, 100);
+  }
+
+  // Ready bar button: starts ready phase (or marks ready if phase already active)
+  readyBarBtn.addEventListener('click', () => {
+    if (mainWheel.spinning || mainWheel.names.length < 2) return;
+    if (!mp.connected) return;
+
+    if (!readyPhaseActive) {
+      // Start ready-up phase via spin request
+      spinBtn.disabled = true;
+      mp.send({ type: 'spin_request', payload: { wheelId: config.activeWheelId } });
+    }
+
+    if (!playerIsReady) {
+      playerIsReady = true;
+      readyBarBtn.classList.add('is-ready');
+      readyBarBtn.textContent = 'READY!';
+      readyBarBtn.disabled = true;
+      mp.send({ type: 'ready' });
+    }
+  });
+
+  function openBettingOverlay() {
+    betStatusEl.textContent = '';
+    betConfirmBtn.disabled = false;
+    betAmountInput.value = '';
+
+    // Populate bet entry dropdown
+    betEntrySelect.innerHTML = '<option value="">Pick an entry...</option>';
+    const wc = config.wheels[currentReadyWheelId || config.activeWheelId];
+    if (wc) {
+      const entries = (wc.entries || '').split('\n').map(s => s.trim()).filter(Boolean);
+      entries.forEach(e => {
+        const opt = document.createElement('option');
+        opt.value = e; opt.textContent = e;
+        betEntrySelect.appendChild(opt);
+      });
+    }
+
+    const me = mp.players.find(p => p.name === mp.playerName);
+    const balance = me ? me.points : 0;
+    betAmountInput.max = balance;
+
+    readyOverlay.classList.add('show');
+  }
+
+  // Close betting overlay button
+  document.getElementById('closeBetOverlay').addEventListener('click', () => {
+    readyOverlay.classList.remove('show');
+  });
+
+  betConfirmBtn.addEventListener('click', () => {
+    const entry = betEntrySelect.value;
+    const amount = parseInt(betAmountInput.value);
+    if (!entry) { betStatusEl.textContent = 'Pick an entry to bet on'; return; }
+    if (!amount || amount <= 0) { betStatusEl.textContent = 'Enter a bet amount'; return; }
+    const me = mp.players.find(p => p.name === mp.playerName);
+    if (me && amount > me.points) { betStatusEl.textContent = 'Not enough funds'; return; }
+
+    mp.send({ type: 'bet', payload: { entry, amount } });
+    betConfirmBtn.disabled = true;
+    playerHasBet = true;
+    betStatusEl.textContent = `Bet $${amount} on "${entry}"`;
+  });
+
+  function showBetResults(betResults) {
+    betResultsEl.innerHTML = '';
+    if (!betResults || betResults.length === 0) return;
+    betResults.forEach(r => {
+      const el = document.createElement('div');
+      el.className = 'bet-result-item ' + (r.won ? 'won' : 'lost');
+      if (r.won) {
+        el.textContent = `${r.name} won $${r.payout}! (bet $${r.amount} on "${r.entry}")`;
+      } else {
+        el.textContent = `${r.name} lost $${r.amount} (bet on "${r.entry}")`;
+      }
+      betResultsEl.appendChild(el);
+    });
+    setTimeout(() => { betResultsEl.innerHTML = ''; }, 6000);
+  }
+
+  // ── Click-on-wheel betting ──
+  function getSegmentFromClick(e) {
+    const canvas = mainWheel.canvas;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const mx = (e.clientX - rect.left) * scaleX - cx;
+    const my = (e.clientY - rect.top) * scaleY - cy;
+    const dist = Math.sqrt(mx * mx + my * my);
+    const radius = cx * 0.92;
+    if (dist > radius || dist < 20) return -1; // outside wheel or center
+    // Angle relative to wheel rotation
+    let angle = Math.atan2(my, mx) - mainWheel.rotation;
+    angle = ((angle % TWO_PI) + TWO_PI) % TWO_PI;
+    mainWheel.rebuildLayout();
+    return segmentAtAngle(mainWheel.cachedSegments, angle);
+  }
+
+  // Bet via click / hold on wheel (accelerating)
+  let betHoldTimer = null;
+  let betHoldInterval = null;
+  let betHoldButton = -1; // 0 = left, 2 = right
+  let betHoldTicks = 0;
+
+  function betAmountForTick(tick, ctrlKey) {
+    // Accelerate: $1 for first 5 ticks, then $2, $5, $10, $25, $50...
+    const base = ctrlKey ? 10 : 1;
+    let mult = 1;
+    if (tick > 20) mult = 50;
+    else if (tick > 15) mult = 25;
+    else if (tick > 10) mult = 10;
+    else if (tick > 7) mult = 5;
+    else if (tick > 4) mult = 2;
+    return base * mult;
+  }
+
+  function placeBetAtAmount(e, button, amount) {
+    if (!mp.connected || mainWheel.spinning) return;
+    if (mainWheel.names.length < 2) return;
+    const idx = getSegmentFromClick(e);
+    if (idx < 0) return;
+    const entry = mainWheel.names[idx];
+    const isRemove = button === 2;
+    const final = isRemove ? -amount : amount;
+    mp.send({ type: 'bet', payload: { entry, entryIndex: idx, amount: final } });
+    playSoundFile('chipsplaced.mp3', isRemove ? 0.3 : 0.5);
+  }
+
+  function stopBetHold() {
+    if (betHoldTimer) { clearTimeout(betHoldTimer); betHoldTimer = null; }
+    if (betHoldInterval) { clearInterval(betHoldInterval); betHoldInterval = null; }
+    betHoldButton = -1;
+    betHoldTicks = 0;
+  }
+
+  mainWheel.canvas.addEventListener('mousedown', (e) => {
+    if (e.button !== 0 && e.button !== 2) return;
+    betHoldButton = e.button;
+    betHoldTicks = 0;
+    // Place one bet immediately
+    placeBetAtAmount(e, e.button, betAmountForTick(0, e.ctrlKey));
+    // Start hold: after 400ms delay, repeat every 100ms with acceleration
+    const held = e;
+    betHoldTimer = setTimeout(() => {
+      betHoldInterval = setInterval(() => {
+        betHoldTicks++;
+        placeBetAtAmount(held, betHoldButton, betAmountForTick(betHoldTicks, held.ctrlKey));
+      }, 100);
+    }, 400);
+  });
+
+  mainWheel.canvas.addEventListener('mouseup', stopBetHold);
+  mainWheel.canvas.addEventListener('mouseleave', stopBetHold);
+
+  // Prevent default context menu and handle right-click via mousedown
+  mainWheel.canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+  });
+
+  // Prevent click from also firing (mousedown already handles it)
+  mainWheel.canvas.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  // Bet tooltip on hover
+  let betTooltip = null;
+  mainWheel.canvas.addEventListener('mousemove', (e) => {
+    if (!mp.connected || mainWheel.spinning || mainWheel.names.length < 2) {
+      if (betTooltip) { betTooltip.remove(); betTooltip = null; }
+      return;
+    }
+    const idx = getSegmentFromClick(e);
+    if (idx < 0) {
+      if (betTooltip) { betTooltip.remove(); betTooltip = null; }
+      return;
+    }
+    const entry = mainWheel.names[idx];
+    const betsOnEntry = allBets.filter(b => b.entryIndex === idx && b.amount > 0);
+    // Build or update tooltip
+    if (!betTooltip) {
+      betTooltip = document.createElement('div');
+      betTooltip.className = 'bet-tooltip';
+      mainWheel.canvas.parentElement.appendChild(betTooltip);
+    }
+    const rect = mainWheel.canvas.parentElement.getBoundingClientRect();
+    betTooltip.style.left = (e.clientX - rect.left) + 'px';
+    betTooltip.style.top = (e.clientY - rect.top) + 'px';
+    let html = '<div style="font-weight:700;margin-bottom:2px;">' + entry + '</div>';
+    if (betsOnEntry.length > 0) {
+      betsOnEntry.forEach(b => {
+        html += '<div class="bet-tooltip-row"><span class="bet-tooltip-dot" style="background:' + b.color + '"></span>' + b.playerName + ': $' + b.amount + '</div>';
+      });
+    } else {
+      html += '<div style="color:#888;">Click to bet</div>';
+    }
+    betTooltip.innerHTML = html;
+  });
+
+  mainWheel.canvas.addEventListener('mouseleave', () => {
+    if (betTooltip) { betTooltip.remove(); betTooltip = null; }
+  });
+
+  // Betting hint
+  betHint = document.createElement('div');
+  betHint.className = 'wheel-bet-hint';
+  betHint.textContent = 'Click to bet \u2022 Ctrl = $10 \u2022 Right-click to remove \u2022 Hold to repeat';
+  betHint.style.display = 'none';
+  mainWheel.canvas.parentElement.appendChild(betHint);
+
+  // Draw bet chips on wheel after each draw
+  const origDraw = mainWheel.draw;
+  mainWheel.draw = () => {
+    origDraw.call(mainWheel);
+    if (allBets.length === 0 || mainWheel.names.length < 2) return;
+    mainWheel.rebuildLayout();
+    const segments = mainWheel.cachedSegments;
+    const cw = mainWheel.canvas.width, cx = cw / 2;
+    const r = cx * 0.92;
+    const ctx = mainWheel.ctx;
+    ctx.save();
+    ctx.translate(cx, cx);
+    ctx.rotate(mainWheel.rotation);
+
+    // Group bets by entry index
+    const betsByIndex = {};
+    allBets.forEach(b => {
+      if (b.amount <= 0) return;
+      const key = b.entryIndex != null ? b.entryIndex : -1;
+      if (!betsByIndex[key]) betsByIndex[key] = [];
+      betsByIndex[key].push(b);
+    });
+
+    for (let i = 0; i < mainWheel.names.length; i++) {
+      const bets = betsByIndex[i];
+      if (!bets || bets.length === 0) continue;
+      const seg = segments[i];
+      const midAngle = seg.start + seg.arc / 2;
+      const chipR = r * 0.45; // place chips ~45% out from center
+      const chipCx = Math.cos(midAngle) * chipR;
+      const chipCy = Math.sin(midAngle) * chipR;
+      const chipSize = Math.max(8, Math.min(16, seg.arc * r * 0.12)) * devicePixelRatio;
+
+      bets.forEach((b, bi) => {
+        const offsetAngle = midAngle + (bi - (bets.length - 1) / 2) * chipSize * 2.5 / chipR;
+        const bx = Math.cos(offsetAngle) * chipR;
+        const by = Math.sin(offsetAngle) * chipR;
+
+        // Chip circle
+        ctx.beginPath();
+        ctx.arc(bx, by, chipSize, 0, TWO_PI);
+        ctx.fillStyle = b.color;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+        ctx.lineWidth = 1.5 * devicePixelRatio;
+        ctx.stroke();
+
+        // Amount text
+        ctx.save();
+        ctx.fillStyle = '#fff';
+        ctx.font = `700 ${chipSize * 0.9}px "Nunito",sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 2;
+        ctx.fillText('$' + b.amount, bx, by);
+        ctx.restore();
+      });
+    }
+
+    ctx.restore();
+  };
+
+  // ── Spin initiator overlay ──
+  let initiatorTimer = null;
+  function showInitiator(name) {
+    spinInitiator.textContent = name + ' is spinning...';
+    spinInitiator.classList.add('show');
+    clearTimeout(initiatorTimer);
+    initiatorTimer = setTimeout(() => spinInitiator.classList.remove('show'), 3000);
+  }
+
+  // ── Remote spin handler (deterministic replay) ──
+  function handleRemoteSpin(payload) {
+    const { initiator, wheelId, targetAngle, duration, minSpins, visitedChain } = payload;
+
+    // Reset chain tracker at the start of a new spin sequence
+    if (!visitedChain || visitedChain.length === 0) {
+      spinChainResults = [];
+    }
+
+    showInitiator(initiator);
+
+    // Determine which wheel object to spin
+    let wheel;
+    const isMain = wheelId === config.activeWheelId;
+
+    if (isMain) {
+      clearSubWheels();
+      resizeAllWheels();
+      wheel = mainWheel;
+    } else {
+      // Sub-wheel: create cell if it doesn't exist yet
+      const wc = config.wheels[wheelId];
+      if (!wc) return;
+      const entries = (wc.entries || '').split('\n').map(s => s.trim()).filter(Boolean);
+      if (entries.length < 2) return;
+
+      const { cell, wheel: sw } = createWheelCell(wc.title || wheelId);
+      syncWheelConfig(sw, wc);
+      sw.names = entries;
+      sw.rotation = 0;
+      sw.cooldowns.clear();
+      sw.invalidateLayout();
+      wheel = sw;
+
+      // Let grid reflow
+      setTimeout(() => { resizeAllWheels(); wheel.draw(); }, 50);
+    }
+
+    spinBtn.disabled = true;
+
+    // Wait for sub-wheel to be ready before spinning
+    const startSpin = () => {
+      // Deterministic spin using server-provided parameters
+      wheel.rebuildLayout();
+      const segments = wheel.cachedSegments;
+      if (!segments || segments.length === 0) return;
+
+      // Find the winner from target angle
+      const landAngle = targetAngle;
+
+      // Calculate rotation to land pointer on target angle
+      // Pointer is at top (3π/2 or -π/2) — the segment at pointer is the winner
+      // We need: (-rotation - π/2) mod 2π == targetAngle
+      // So: rotation = -π/2 - targetAngle (+ N*2π for min revolutions)
+      let finalRot = -(Math.PI / 2) - landAngle;
+      // Normalize to positive, then add full spins
+      while (finalRot > wheel.rotation) finalRot -= TWO_PI;
+      while (finalRot <= wheel.rotation + minSpins * TWO_PI) finalRot += TWO_PI;
+
+      const startR = wheel.rotation;
+      const delta = finalRot - startR;
+      const startT = performance.now();
+      const easePow = 5;
+      let lastSeg = -1;
+      wheel.spinning = true;
+
+      // Track spin timing for hotbar boost item
+      spinStartTime = startT;
+      spinDurationMs = duration;
+      activeBoostOffset = 0;
+      boostTarget = 0;
+      if (isMain) { rebuildHotbar(); startHotbarRefresh(); }
+
+      let lastAnimTime = startT;
+      function animate(now) {
+        const dt = (now - lastAnimTime) / 1000; // seconds since last frame
+        lastAnimTime = now;
+        // Smoothly interpolate boost offset toward target (~3x per second lerp)
+        if (Math.abs(boostTarget - activeBoostOffset) > 0.001) {
+          activeBoostOffset += (boostTarget - activeBoostOffset) * Math.min(1, dt * 3);
+        } else {
+          activeBoostOffset = boostTarget;
+        }
+        const t = Math.min((now - startT) / duration, 1);
+        wheel.rotation = startR + delta * (1 - Math.pow(1 - t, easePow)) + activeBoostOffset;
+
+        // Tick sound
+        const pointerAngle = (((-wheel.rotation - Math.PI / 2) % TWO_PI) + TWO_PI) % TWO_PI;
+        const curSeg = segmentAtAngle(segments, pointerAngle);
+        if (curSeg !== lastSeg && lastSeg !== -1) {
+          playTick();
+          if (wheel.pointerEl) {
+            wheel.pointerEl.classList.add('tick');
+            setTimeout(() => wheel.pointerEl.classList.remove('tick'), 50);
+          }
+        }
+        lastSeg = curSeg;
+        wheel.draw();
+
+        if (t < 1) {
+          wheel.animFrame = requestAnimationFrame(animate);
+        } else {
+          wheel.spinning = false;
+          // Determine winner (including any boost offset)
+          const finalPointer = (((-wheel.rotation - Math.PI / 2) % TWO_PI) + TWO_PI) % TWO_PI;
+          const winIdx = segmentAtAngle(segments, finalPointer);
+          const winner = wheel.names[winIdx];
+
+          if (isMain) rebuildHotbar();
+
+          // Report to server (only first report matters)
+          mp.send({ type: 'spin_complete', payload: { wheelId, winner } });
+        }
+      }
+      wheel.animFrame = requestAnimationFrame(animate);
+    };
+
+    if (isMain) {
+      startSpin();
+    } else {
+      // Delay for sub-wheel to render
+      setTimeout(startSpin, 400);
+    }
+  }
+
+  // ── Handle spin finished (server-confirmed winner + next action) ──
+  function handleSpinFinished(payload) {
+    const { wheelId, winner, nextAction } = payload;
+    spinBtn.disabled = false;
+    rebuildHotbar();
+    refreshBoostPanel();
+
+    const isMain = wheelId === config.activeWheelId;
+    const wheelTitle = isMain ? (config.wheels[wheelId]?.title || 'Main Wheel') : (config.wheels[wheelId]?.title || 'Sub-Wheel');
+
+    if (!nextAction) {
+      // Terminal win — show full chain if we accumulated results
+      spinChainResults.push({ winner, wheelTitle });
+      if (spinChainResults.length > 1) {
+        showChainWinner(spinChainResults);
+      } else {
+        showWinner(winner, isMain ? 'Winner' : wheelTitle);
+      }
+      spinChainResults = [];
+      playWinSound(winner, wheelId);
+      if (isMain) {
+        advanceCD(winner);
+        applyCD(winner);
+        mainWheel.invalidateLayout();
+      }
+      return;
+    }
+
+    // Accumulate this result into the chain
+    spinChainResults.push({ winner, wheelTitle });
+
+    switch (nextAction.type) {
+      case '__add_entry':
+        playWinSound(winner, wheelId);
+        showToast(winner, 'Add Entry!');
+        startConfetti();
+        setTimeout(() => {
+          hideToast(); stopConfetti();
+          if (mp.isHost) handleAddEntry(wheelId);
+        }, 1200);
+        break;
+
+      case '__remove_entry':
+        playWinSound(winner, wheelId);
+        showToast(winner, 'Remove Entry!');
+        startConfetti();
+        setTimeout(() => {
+          hideToast(); stopConfetti();
+          if (mp.isHost) handleRemoveEntry(wheelId);
+        }, 1200);
+        break;
+
+      case '__spin_again':
+        playWinSound(winner, wheelId);
+        showToast(winner, 'Spin Again!');
+        startConfetti();
+        setTimeout(() => { hideToast(); stopConfetti(); }, 1500);
+        break;
+
+      case 'subwheel':
+        showToast(winner, isMain ? 'Winner' : wheelTitle);
+        startConfetti();
+        playWinSound(winner, wheelId);
+        setTimeout(() => { hideToast(); stopConfetti(); }, 1800);
+        break;
+    }
+
+    if (isMain) {
+      advanceCD(winner);
+      applyCD(winner);
+      mainWheel.invalidateLayout();
+    }
+  }
+
+  function showChainWinner(chain) {
+    // Build HTML showing each step in the chain
+    const stepsHtml = chain.map((step, i) => {
+      const isLast = i === chain.length - 1;
+      const label = step.wheelTitle;
+      const nameStyle = isLast
+        ? 'font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#e94560,#f5a623);-webkit-background-clip:text;-webkit-text-fill-color:transparent;'
+        : 'font-size:1.1rem;font-weight:600;color:var(--text);';
+      const labelStyle = 'font-size:0.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:2px;';
+      return '<div style="margin-bottom:' + (isLast ? '0' : '8px') + ';">'
+        + '<div style="' + labelStyle + '">' + label + '</div>'
+        + '<div style="' + nameStyle + '">' + step.winner + '</div>'
+        + (isLast ? '' : '<div style="color:var(--text-muted);font-size:0.9rem;margin-top:4px;">&#x25BC;</div>')
+        + '</div>';
+    }).join('');
+
+    winnerLabelEl.textContent = '';
+    winnerEl.innerHTML = stepsHtml;
+    modal.classList.add('show');
+    modalCb = null;
+    startConfetti();
+  }
+
+  // ── Multiplayer-aware main spin ──
+  function doMainSpinMP() {
+    if (mainWheel.spinning || mainWheel.names.length < 2) return;
+    if (!mp.connected) {
+      doMainSpin();
+      return;
+    }
+    // Trigger the ready bar button click (starts phase + marks ready + opens betting)
+    readyBarBtn.click();
+  }
+
+  // ── Events ──
+  textarea.addEventListener('input', updateNames);
+  spinBtn.addEventListener('click', doMainSpinMP);
+  window.addEventListener('resize', resizeAllWheels);
+
+  // ── Init ──
+  loadConfig();
+  rebuildWheelSelector();
+  const initWc = selectedWheelConfig();
+  if (initWc) syncWheelConfig(mainWheel, initWc);
+  textarea.value = initWc ? initWc.entries || '' : DEFAULT_ENTRIES;
+  updateNames();
+  mainWheel.resizeCanvas();
+})();
+</script>
+</body>
+</html>

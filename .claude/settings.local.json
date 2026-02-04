@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:wheelofnames.com)",
+      "Bash(start \"\" \"c:\\\\Users\\\\zebad\\\\Documents\\\\wheel_spin\\\\index.html\")",
+      "Bash(rebuild-sounds.bat)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:www.gamedev.net)",
+      "WebFetch(domain:konvajs.org)",
+      "WebFetch(domain:easings.net)",
+      "Bash(mklink:*)",
+      "Bash(cmd.exe /c \"mklink /D \"\"c:\\\\Users\\\\zebad\\\\Documents\\\\wheel_spin\\\\multiplayer\\\\sounds\"\" \"\"c:\\\\Users\\\\zebad\\\\Documents\\\\wheel_spin\\\\sounds\"\"\")",
+      "Bash(npm install:*)",
+      "Bash(timeout 3 node:*)",
+      "Bash(node:*)",
+      "Bash(git -C \"c:\\\\Users\\\\zebad\\\\Documents\\\\wheel_spin\" ls-files --others --exclude-standard)",
+      "Bash(findstr:*)",
+      "Bash(git -C \"c:\\\\Users\\\\zebad\\\\Documents\\\\wheel_spin\" ls-tree:*)",
+      "Bash(git -C \"c:\\\\Users\\\\zebad\\\\Documents\\\\wheel_spin\" status --porcelain)",
+      "Bash(dir /b /s \"c:\\\\Users\\\\zebad\\\\Documents\\\\wheel_spin\")"
+    ]
+  }
+}
