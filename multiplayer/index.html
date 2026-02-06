@@ -197,12 +197,18 @@
 
   /* ── Wheel Selector ── */
   .wheel-selector {
+    position: fixed;
+    top: 60px;
+    right: 20px;
     display: flex;
     align-items: center;
     gap: 6px;
     padding: 8px 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: var(--surface2);
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    z-index: 50;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   }
   .wheel-selector select {
     flex: 1;
@@ -228,59 +234,190 @@
   }
   .wheel-selector button:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* ── Sidebar ── */
-  .sidebar {
-    width: 340px;
-    min-width: 260px;
-    max-width: 60vw;
+  /* Stock Market */
+  .stock-row { display:flex;flex-direction:column;gap:4px;padding:8px 10px;margin-bottom:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px; }
+  .stock-header { display:flex;align-items:center;gap:8px; }
+  .stock-name { flex:1;font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .stock-price { font-weight:700;font-size:0.9rem;white-space:nowrap; }
+  .stock-change { font-size:0.75rem;font-weight:700;white-space:nowrap;padding:1px 6px;border-radius:4px; }
+  .stock-change.up { color:#47B04B;background:rgba(71,176,75,0.15); }
+  .stock-change.down { color:#E74856;background:rgba(231,72,86,0.15); }
+  .stock-change.flat { color:var(--text-muted); }
+  .stock-trade { display:flex;gap:6px;align-items:center; }
+  .stock-trade input { width:50px;padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:var(--bg);color:var(--text);font-family:inherit;font-size:0.8rem;text-align:center; }
+  .stock-trade button { padding:4px 10px;border-radius:6px;border:none;font-family:inherit;font-weight:700;font-size:0.75rem;cursor:pointer; }
+  .stock-buy { background:#47B04B;color:#fff; } .stock-buy:hover { background:#3a9a3f; }
+  .stock-sell { background:#E74856;color:#fff; } .stock-sell:hover { background:#c5303e; }
+  .stock-holdings { font-size:0.72rem;color:var(--text-muted); }
+  .stock-sparkline { width:60px;height:20px;flex-shrink:0; }
+  .stock-portfolio-value { font-size:0.7rem;color:#F5A623;font-weight:600; }
+  .stock-row.selected { background:rgba(233,69,96,0.15);border-color:var(--accent); }
+  .stock-row { cursor:pointer;transition:background 0.2s,border-color 0.2s; }
+  .stock-row:hover { background:rgba(255,255,255,0.05); }
+  #stockDetailTrade input[type="number"] { padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:var(--bg);color:var(--text);font-family:inherit;font-size:0.85rem;text-align:center; }
+  #stockDetailTrade input[type="radio"] { accent-color:var(--accent); }
+  #stockDetailTrade button { padding:8px 16px;border-radius:8px;border:none;font-family:inherit;font-weight:700;font-size:0.85rem;cursor:pointer;transition:background 0.2s; }
+
+  /* Order tabs and panels */
+  .order-tab { padding:6px 12px;border:none;background:var(--bg);color:var(--text-muted);border-radius:6px;font-family:inherit;font-size:0.8rem;cursor:pointer;transition:all 0.2s; }
+  .order-tab:hover { color:var(--text); }
+  .order-tab.active { background:var(--accent);color:#fff; }
+  .order-item { display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border-radius:6px;margin-bottom:6px;font-size:0.8rem; }
+  .order-item .order-type { font-weight:700;width:40px; }
+  .order-item .order-type.buy { color:#47B04B; }
+  .order-item .order-type.sell { color:#E74856; }
+  .order-item .order-stock { flex:1;color:var(--text); }
+  .order-item .order-shares { color:var(--text-muted); }
+  .order-item .order-price { color:#F5A623;min-width:60px;text-align:right; }
+  .order-item .order-status { font-size:0.7rem;padding:2px 6px;border-radius:4px; }
+  .order-item .order-status.pending { background:rgba(245,166,35,0.2);color:#F5A623; }
+  .order-item .order-status.partial { background:rgba(71,176,75,0.2);color:#47B04B; }
+  .order-item .order-status.filled { background:rgba(71,176,75,0.3);color:#47B04B; }
+  .order-item .order-status.cancelled { background:rgba(231,72,86,0.2);color:#E74856; }
+  .order-item .order-cancel { background:#E74856;color:#fff;border:none;padding:4px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer; }
+  .order-item .order-cancel:hover { background:#c5303e; }
+  .order-empty { color:var(--text-muted);font-size:0.8rem;padding:12px;text-align:center; }
+
+  /* Position items */
+  .position-item:hover { background:rgba(255,255,255,0.08) !important; }
+  #stockDetailChart { cursor:crosshair; }
+
+  /* Menu buttons bar */
+  .menu-buttons {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 100;
+  }
+  .menu-btn {
+    padding: 12px 20px;
     background: var(--surface);
-    border-left: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .menu-btn:hover {
+    background: var(--surface2);
+    transform: translateY(-2px);
+  }
+  .menu-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* Popup overlay */
+  .popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 200;
+    display: none;
+  }
+  .popup-overlay.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Popup container */
+  .popup {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    max-width: 90vw;
+    max-height: 85vh;
+    width: 550px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   }
-  .sidebar-resize {
-    position: absolute;
-    left: -4px;
-    top: 0;
-    bottom: 0;
-    width: 8px;
-    cursor: col-resize;
-    z-index: 20;
-  }
-  .sidebar-resize:hover,
-  .sidebar-resize.active {
-    background: rgba(233,69,96,0.3);
-  }
+  .popup.wide { width: 1100px; max-height: 90vh; }
 
-  /* Tabs */
-  .sidebar-tabs {
+  .popup-header {
     display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
   }
-  .sidebar-tabs button {
+  .popup-title {
     flex: 1;
-    padding: 12px 0;
-    background: transparent;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .popup-close {
+    background: none;
     border: none;
     color: var(--text-muted);
-    font-family: inherit;
-    font-weight: 600;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 1.5rem;
     cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: color 0.2s, border-color 0.2s;
+    padding: 4px 8px;
+    line-height: 1;
+    transition: color 0.2s;
   }
-  .sidebar-tabs button.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-  }
+  .popup-close:hover { color: var(--accent); }
 
-  .tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
-  .tab-content.active { display: flex; }
+  .popup-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+  }
+  .popup-body::-webkit-scrollbar { width: 6px; }
+  .popup-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+  /* Stock detail panel */
+  .stock-detail-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .stock-detail-header h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .stock-detail-chart {
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .stock-detail-trade {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .stock-detail-trade input {
+    width: 70px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+  .stock-detail-trade button {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
 
   /* Entries tab */
   .sidebar-header {
@@ -993,6 +1130,195 @@
     transition: background 0.3s, color 0.3s;
   }
   .ready-bar-chip.is-ready { background: #47B04B; color: #fff; }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     RESPONSIVE STYLES
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  /* Large screens - default wheel size constraint */
+  .wheel-cell-inner {
+    max-width: min(500px, 70vh);
+    max-height: min(500px, 70vh);
+  }
+
+  /* Medium screens (tablets, smaller monitors) */
+  @media (max-width: 1200px) {
+    .popup.wide {
+      width: 95vw;
+      max-width: 900px;
+    }
+    #stockDetailChart {
+      width: 100% !important;
+      max-width: 400px;
+      height: auto !important;
+      max-height: 220px;
+    }
+    #positionsPanel {
+      flex: 0 0 220px !important;
+    }
+  }
+
+  /* Smaller screens (small tablets, large phones) */
+  @media (max-width: 900px) {
+    .wheel-cell-inner {
+      max-width: min(400px, 60vh);
+      max-height: min(400px, 60vh);
+    }
+    .center-btn {
+      width: 130px;
+      height: 130px;
+      font-size: 1.2rem;
+      border-width: 5px;
+    }
+    .pointer {
+      border-left: 14px solid transparent;
+      border-right: 14px solid transparent;
+      border-top: 30px solid var(--accent);
+      top: -14px;
+    }
+    .popup.wide {
+      width: 98vw;
+      max-height: 95vh;
+    }
+    /* Stack market panels vertically */
+    .popup.wide .popup-body {
+      flex-direction: column !important;
+    }
+    #stockList {
+      max-height: 35vh;
+      overflow-y: auto;
+    }
+    #stockDetail {
+      border-left: none !important;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-left: 0 !important;
+      padding-top: 12px;
+    }
+    #positionsPanel {
+      flex: 0 0 auto !important;
+      border-left: none !important;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-left: 0 !important;
+      padding-top: 12px;
+      max-height: 30vh !important;
+    }
+    #stockDetailChart {
+      max-width: 100%;
+      max-height: 180px;
+    }
+    .menu-buttons {
+      gap: 6px;
+    }
+    .menu-btn {
+      padding: 10px 14px;
+      font-size: 0.8rem;
+    }
+    .left-panel {
+      width: 180px;
+      min-width: 150px;
+    }
+  }
+
+  /* Mobile screens */
+  @media (max-width: 600px) {
+    .wheel-cell-inner {
+      max-width: min(320px, 55vh);
+      max-height: min(320px, 55vh);
+    }
+    .center-btn {
+      width: 100px;
+      height: 100px;
+      font-size: 1rem;
+      border-width: 4px;
+    }
+    .pointer {
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-top: 26px solid var(--accent);
+      top: -12px;
+    }
+    .popup {
+      width: 98vw;
+      max-height: 95vh;
+      border-radius: 12px;
+    }
+    .popup.wide {
+      width: 98vw;
+    }
+    .popup-header {
+      padding: 12px 14px;
+    }
+    .popup-body {
+      padding: 12px 14px;
+    }
+    .menu-buttons {
+      bottom: 10px;
+      right: 10px;
+      gap: 4px;
+    }
+    .menu-btn {
+      padding: 8px 10px;
+      font-size: 0.75rem;
+      border-radius: 8px;
+    }
+    .wheel-selector {
+      top: auto;
+      bottom: 70px;
+      right: 10px;
+      padding: 6px 10px;
+    }
+    .left-panel {
+      display: none !important;
+    }
+    .status-bar {
+      padding: 4px 10px;
+      font-size: 0.75rem;
+    }
+    #stockDetailChart {
+      max-height: 150px;
+    }
+    .stock-row {
+      padding: 6px 8px;
+    }
+    .stock-detail-header h3 {
+      font-size: 1.1rem;
+    }
+  }
+
+  /* Very small screens / low height */
+  @media (max-height: 700px) {
+    .wheel-cell-inner {
+      max-width: min(350px, 50vh);
+      max-height: min(350px, 50vh);
+    }
+    .center-btn {
+      width: 110px;
+      height: 110px;
+      font-size: 1.1rem;
+    }
+    .popup {
+      max-height: 90vh;
+    }
+  }
+
+  @media (max-height: 500px) {
+    .wheel-cell-inner {
+      max-width: min(280px, 45vh);
+      max-height: min(280px, 45vh);
+    }
+    .center-btn {
+      width: 80px;
+      height: 80px;
+      font-size: 0.9rem;
+      border-width: 3px;
+    }
+    .pointer {
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 22px solid var(--accent);
+      top: -10px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -1065,26 +1391,32 @@
     </div>
   </div>
 
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-resize" id="sidebarResize"></div>
-    <div class="wheel-selector">
-      <select id="wheelSelect" title="Select wheel"></select>
-      <button id="addWheelBtn" title="Add wheel">+</button>
-      <button id="renameWheelBtn" title="Rename wheel">&#9998;</button>
-      <button id="deleteWheelBtn" title="Delete wheel">&#128465;</button>
-    </div>
-    <div class="sidebar-tabs">
-      <button class="active" data-tab="shop">Shop</button>
-      <button data-tab="entries">Entries</button>
-      <button data-tab="configure">Configure</button>
-    </div>
+  <!-- Wheel selector (floating) -->
+  <div class="wheel-selector" id="wheelSelector">
+    <select id="wheelSelect" title="Select wheel"></select>
+    <button id="addWheelBtn" title="Add wheel">+</button>
+    <button id="renameWheelBtn" title="Rename wheel">&#9998;</button>
+    <button id="deleteWheelBtn" title="Delete wheel">&#128465;</button>
+  </div>
 
-    <!-- Shop tab -->
-    <div class="tab-content active" id="tab-shop">
-      <div class="sidebar-header">
-        <h2>Shop</h2>
-        <button class="shop-edit-toggle" id="shopEditToggle" style="display:none">Edit</button>
-      </div>
+  <!-- Menu buttons -->
+  <div class="menu-buttons" id="menuButtons">
+    <button class="menu-btn" data-popup="shop">Shop</button>
+    <button class="menu-btn" data-popup="market">Market</button>
+    <button class="menu-btn" data-popup="entries">Entries</button>
+    <button class="menu-btn" data-popup="configure">Configure</button>
+  </div>
+</div>
+
+<!-- Shop Popup -->
+<div class="popup-overlay" id="popup-shop">
+  <div class="popup">
+    <div class="popup-header">
+      <span class="popup-title">Shop</span>
+      <button class="shop-edit-toggle" id="shopEditToggle" style="display:none">Edit</button>
+      <button class="popup-close">&times;</button>
+    </div>
+    <div class="popup-body">
       <div class="shop-items" id="shopItems"></div>
       <div class="shop-edit-form" id="shopEditForm">
         <input type="text" id="shopNewName" placeholder="Item name" maxlength="40">
@@ -1108,9 +1440,9 @@
         </div>
         <button id="shopAddBtn">Add Item</button>
       </div>
-      <!-- Chance Enhancer (always visible in shop) -->
-      <div class="shop-boost-section" id="shopBoostSection" style="padding:10px 14px;border-top:1px solid rgba(255,255,255,0.06);margin-top:8px;">
-        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px;">Chance Enhancer</div>
+      <!-- Chance Enhancer -->
+      <div class="shop-boost-section" id="shopBoostSection" style="padding:10px 0;border-top:1px solid rgba(255,255,255,0.06);margin-top:12px;">
+        <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:10px;">Chance Enhancer</div>
         <div class="lp-boost-row">
           <select id="lpBoostEntry" title="Entry to boost" style="width:100%;"><option value="">Pick entry...</option></select>
         </div>
@@ -1127,23 +1459,72 @@
         <div class="lp-boost-status" id="lpBoostStatus"></div>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- Entries tab -->
-    <div class="tab-content" id="tab-entries">
-      <div class="sidebar-header">
-        <h2>Names</h2>
-        <span class="entry-count" id="entryCount">0</span>
+<!-- Market Popup -->
+<div class="popup-overlay" id="popup-market">
+  <div class="popup wide">
+    <div class="popup-header">
+      <span class="popup-title">Stock Market</span>
+      <span class="entry-count" id="marketStatus">--</span>
+      <button class="popup-close">&times;</button>
+    </div>
+    <div class="popup-body" style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;gap:16px;flex:1;min-height:0;">
+        <div id="stockList" style="flex:0 0 280px;overflow-y:auto;max-height:55vh;"></div>
+        <div id="stockDetail" style="flex:1;min-width:0;display:none;">
+          <div class="stock-detail-header" id="stockDetailName"></div>
+          <div style="position:relative;">
+            <canvas class="stock-detail-chart" id="stockDetailChart" width="500" height="280"></canvas>
+            <div id="chartTooltip" style="position:absolute;display:none;background:rgba(0,0,0,0.9);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:6px 10px;font-size:0.8rem;pointer-events:none;z-index:10;"></div>
+          </div>
+          <div class="stock-detail-trade" id="stockDetailTrade"></div>
+        </div>
+        <div id="positionsPanel" style="flex:0 0 260px;border-left:1px solid rgba(255,255,255,0.1);padding-left:16px;overflow-y:auto;max-height:55vh;">
+          <h4 style="margin:0 0 12px 0;font-size:0.9rem;color:var(--text-muted);">Your Positions</h4>
+          <div id="positionsList"></div>
+        </div>
       </div>
-      <textarea id="namesInput" placeholder="Enter names, one per line" spellcheck="false"></textarea>
-      <div class="sidebar-actions">
+      <div id="ordersSection" style="border-top:1px solid rgba(255,255,255,0.1);padding-top:12px;">
+        <div style="display:flex;gap:16px;margin-bottom:8px;">
+          <button class="order-tab active" data-tab="pending">Pending Orders</button>
+          <button class="order-tab" data-tab="history">Order History</button>
+        </div>
+        <div id="pendingOrdersPanel" class="order-panel" style="max-height:120px;overflow-y:auto;"></div>
+        <div id="orderHistoryPanel" class="order-panel" style="max-height:120px;overflow-y:auto;display:none;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Entries Popup -->
+<div class="popup-overlay" id="popup-entries">
+  <div class="popup">
+    <div class="popup-header">
+      <span class="popup-title">Entries</span>
+      <span class="entry-count" id="entryCount">0</span>
+      <button class="popup-close">&times;</button>
+    </div>
+    <div class="popup-body" style="display:flex;flex-direction:column;gap:12px;">
+      <textarea id="namesInput" placeholder="Enter names, one per line" spellcheck="false" style="flex:1;min-height:250px;background:var(--bg);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;color:var(--text);font-family:inherit;font-size:0.9rem;resize:none;"></textarea>
+      <div class="sidebar-actions" style="border-top:none;padding:0;">
         <button class="btn-shuffle" id="shuffleBtn">Shuffle</button>
         <button class="btn-reset" id="resetBtn">Clear</button>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- Configure tab -->
-    <div class="tab-content" id="tab-configure">
-      <div class="config-panel" id="configPanel">
+<!-- Configure Popup -->
+<div class="popup-overlay" id="popup-configure">
+  <div class="popup">
+    <div class="popup-header">
+      <span class="popup-title">Configure</span>
+      <button class="popup-close">&times;</button>
+    </div>
+    <div class="popup-body">
+      <div class="config-panel" id="configPanel" style="padding:0;">
         <!-- Default sound -->
         <div class="config-section">
           <div class="config-section-title">Default Win Sound</div>
@@ -1181,12 +1562,9 @@
           <div class="config-section-title">Entry Sounds &amp; Triggers</div>
           <div id="entryConfigList"></div>
         </div>
-
-        <!-- Sub-wheel triggers are now assigned via per-entry dropdown above -->
       </div>
     </div>
-
-  </aside>
+  </div>
 </div>
 
 <div class="modal-overlay" id="modal">
@@ -1357,16 +1735,58 @@
   const entryConfigList = document.getElementById('entryConfigList');
   const wheelSelect = document.getElementById('wheelSelect');
 
-  // ── Tabs ──
-  document.querySelectorAll('.sidebar-tabs button').forEach(btn => {
+  // ── Popup menus ──
+  function openPopup(name) {
+    document.querySelectorAll('.popup-overlay').forEach(p => p.classList.remove('show'));
+    document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+    const popup = document.getElementById('popup-' + name);
+    const btn = document.querySelector('.menu-btn[data-popup="' + name + '"]');
+    if (popup) popup.classList.add('show');
+    if (btn) btn.classList.add('active');
+
+    // Refresh content when opened
+    if (name === 'configure') rebuildConfigUI();
+    if (name === 'shop') { rebuildShopUI(); refreshBoostPanel(); }
+    if (name === 'market') {
+      rebuildMarketUI();
+      mp.send({ type: 'get_orders' }); // Request orders data
+    }
+  }
+
+  function closePopup() {
+    document.querySelectorAll('.popup-overlay').forEach(p => p.classList.remove('show'));
+    document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+  }
+
+  // Menu button click handlers
+  document.querySelectorAll('.menu-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.sidebar-tabs button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-      if (btn.dataset.tab === 'configure') rebuildConfigUI();
-      if (btn.dataset.tab === 'shop') { rebuildShopUI(); refreshBoostPanel(); }
+      const popupName = btn.dataset.popup;
+      const popup = document.getElementById('popup-' + popupName);
+      // Toggle: if already open, close it
+      if (popup && popup.classList.contains('show')) {
+        closePopup();
+      } else {
+        openPopup(popupName);
+      }
     });
+  });
+
+  // Close button handlers
+  document.querySelectorAll('.popup-close').forEach(btn => {
+    btn.addEventListener('click', closePopup);
+  });
+
+  // Click outside popup to close
+  document.querySelectorAll('.popup-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closePopup();
+    });
+  });
+
+  // ESC key closes popup
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closePopup();
   });
 
   // ── Audio Context ──
@@ -1488,6 +1908,7 @@
       cooldowns: new Map(),
       offscreen: null, offCtx: null, cachedSegments: [], layoutDirty: true,
       defaultFontSize: 18, fontSizes: {},  // set externally before draw
+      hoveredSegment: -1, // currently hovered segment index (-1 = none)
     };
 
     w.entryWeights = {};
@@ -1556,7 +1977,13 @@
       const titleH = titleEl ? titleEl.getBoundingClientRect().height + 4 : 0;
       const availW = cellRect.width;
       const availH = cellRect.height - titleH;
-      const size = Math.max(Math.min(availW, availH), 50);
+      // Responsive max size based on viewport
+      const vw = window.innerWidth, vh = window.innerHeight;
+      let maxSize = 500; // default max
+      if (vw <= 600 || vh <= 500) maxSize = Math.min(320, vh * 0.55);
+      else if (vw <= 900 || vh <= 700) maxSize = Math.min(400, vh * 0.6);
+      else maxSize = Math.min(500, vh * 0.7);
+      const size = Math.max(Math.min(availW, availH, maxSize), 50);
       const inner = w.canvas.parentElement;
       inner.style.width = size + 'px';
       inner.style.height = size + 'px';
@@ -1604,6 +2031,20 @@
       w.rebuildLayout();
       w.ctx.save(); w.ctx.translate(cx,cy); w.ctx.rotate(w.rotation);
       w.ctx.drawImage(w.offscreen, -cx, -cy);
+      // Draw hover highlight
+      if (w.hoveredSegment >= 0 && w.hoveredSegment < w.cachedSegments.length && !w.spinning) {
+        const seg = w.cachedSegments[w.hoveredSegment];
+        const r = cx * 0.92;
+        w.ctx.beginPath();
+        w.ctx.moveTo(0, 0);
+        w.ctx.arc(0, 0, r, seg.start, seg.end);
+        w.ctx.closePath();
+        w.ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+        w.ctx.fill();
+        w.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        w.ctx.lineWidth = 3 * devicePixelRatio;
+        w.ctx.stroke();
+      }
       w.ctx.restore();
     };
 
@@ -1701,6 +2142,13 @@
   function resizeAllWheels() {
     mainWheel.resizeCanvas();
     for (const sc of subWheelCells) sc.wheel.resizeCanvas();
+    // Redraw chart if market is open and stock selected
+    if (selectedStock && currentStockPrices[selectedStock]) {
+      const popup = document.getElementById('popup-market');
+      if (popup && popup.classList.contains('show')) {
+        selectStock(selectedStock);
+      }
+    }
   }
 
   // ── Cooldown ──
@@ -2376,31 +2824,6 @@
   });
   resetBtn.addEventListener('click', () => { textarea.value = ''; updateNames(); });
 
-  // ── Sidebar Resize ──
-  const sidebar = document.getElementById('sidebar');
-  const resizeHandle = document.getElementById('sidebarResize');
-  let resizing = false;
-  resizeHandle.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    resizing = true;
-    resizeHandle.classList.add('active');
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  });
-  window.addEventListener('mousemove', (e) => {
-    if (!resizing) return;
-    const newWidth = window.innerWidth - e.clientX;
-    sidebar.style.width = Math.max(260, Math.min(newWidth, window.innerWidth * 0.6)) + 'px';
-    resizeAllWheels();
-  });
-  window.addEventListener('mouseup', () => {
-    if (!resizing) return;
-    resizing = false;
-    resizeHandle.classList.remove('active');
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-  });
-
   // ══════════════════════════════════════════════════════════════
   // ── SHOP ──
   // ══════════════════════════════════════════════════════════════
@@ -2641,9 +3064,44 @@
   let spinDurationMs = 0;
   let activeBoostOffset = 0;
   let boostTarget = 0;
+  let spinEndTime = 0;
 
   function applyWheelBoost(amount) {
+    // Scale boost based on player's local segment sizes vs equal segments
+    // If player has boosted entries (making some segments larger), adjust the boost
+    const wc = config.wheels[config.activeWheelId];
+    if (wc) {
+      const entries = (wc.entries || '').split('\n').map(s => s.trim()).filter(Boolean);
+      const ew = wc.entryWeights || {};
+      const numEntries = entries.length;
+      if (numEntries > 0) {
+        // Calculate player's average segment arc vs equal segment arc
+        let totalWeight = 0;
+        entries.forEach((name, idx) => {
+          const base = ew[name] != null ? ew[name] : 1;
+          const idxBoost = ew['__idx_' + idx] || 0;
+          totalWeight += base + idxBoost;
+        });
+        const avgWeight = totalWeight / numEntries;
+        const equalWeight = 1; // base weight
+        // Scale: if player has larger average weights, boost has less relative impact
+        // If weights are equal (avgWeight ~= 1), no scaling
+        const scaleFactor = equalWeight / Math.max(0.1, avgWeight);
+        amount *= scaleFactor;
+      }
+    }
+
     boostTarget += amount;
+
+    // Extend spin duration to give the boost time to take effect
+    const now = performance.now();
+    const minRemainingTime = 2000; // at least 2 seconds remaining after boost
+    const currentRemaining = spinEndTime - now;
+    if (currentRemaining < minRemainingTime) {
+      const extension = minRemainingTime - currentRemaining;
+      spinDurationMs += extension;
+      spinEndTime = now + minRemainingTime;
+    }
   }
 
   function isSpinNearEnd() {
@@ -2768,6 +3226,521 @@
     lpBoostBtn.disabled = true;
     lpBoostStatus.textContent = `Boosting "${entryName}" for $${cost}`;
   });
+
+  // ══════════════════════════════════════════════════════════════
+  // ── STOCK MARKET ──
+  // ══════════════════════════════════════════════════════════════
+
+  let currentStockPrices = {};  // { name: { price, prevPrice, change, history } }
+  let currentPortfolios = {};   // { playerName: { entryName: shares } }
+  let currentCostBases = {};    // { playerName: { entryName: { totalCost, shares } } }
+  // Note: Server now sends personalized targetAngles, so we don't need to save/restore weights
+
+  function drawSparkline(canvas, history) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    if (history.length < 2) return;
+    const min = Math.min(...history), max = Math.max(...history);
+    const range = max - min || 1;
+    ctx.beginPath();
+    history.forEach((val, i) => {
+      const x = (i / (history.length - 1)) * w;
+      const y = h - ((val - min) / range) * (h - 2) - 1;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = history[history.length - 1] >= history[0] ? '#47B04B' : '#E74856';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Store chart data for hover lookups
+  let currentChartData = { history: [], padding: {}, chartW: 0, chartH: 0, min: 0, max: 0, canvasW: 0, canvasH: 0 };
+
+  function drawLargeChart(canvas, history) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const padding = { top: 20, right: 20, bottom: 30, left: 55 };
+    const chartW = w - padding.left - padding.right;
+    const chartH = h - padding.top - padding.bottom;
+
+    // Store for hover calculations
+    currentChartData = { history: history || [], padding, chartW, chartH, min: 0, max: 0, canvasW: w, canvasH: h };
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(0, 0, w, h);
+
+    if (!history || history.length < 2) {
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '14px Nunito';
+      ctx.textAlign = 'center';
+      ctx.fillText('Not enough data', w / 2, h / 2);
+      return;
+    }
+
+    const min = Math.min(...history), max = Math.max(...history);
+    const range = max - min || 1;
+    currentChartData.min = min;
+    currentChartData.max = max;
+
+    // Draw grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 5; i++) {
+      const y = padding.top + (chartH / 5) * i;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(w - padding.right, y);
+      ctx.stroke();
+
+      // Price labels
+      const priceVal = max - (range / 5) * i;
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = '11px Nunito';
+      ctx.textAlign = 'right';
+      ctx.fillText('$' + priceVal.toFixed(2), padding.left - 8, y + 4);
+    }
+
+    // Draw price line with points
+    const points = [];
+    ctx.beginPath();
+    history.forEach((val, i) => {
+      const x = padding.left + (i / (history.length - 1)) * chartW;
+      const y = padding.top + chartH - ((val - min) / range) * chartH;
+      points.push({ x, y, value: val, index: i });
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    const isUp = history[history.length - 1] >= history[0];
+    ctx.strokeStyle = isUp ? '#47B04B' : '#E74856';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Fill area under line
+    ctx.lineTo(padding.left + chartW, padding.top + chartH);
+    ctx.lineTo(padding.left, padding.top + chartH);
+    ctx.closePath();
+    ctx.fillStyle = isUp ? 'rgba(71,176,75,0.2)' : 'rgba(231,72,86,0.2)';
+    ctx.fill();
+
+    // Draw data points
+    points.forEach((pt, i) => {
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = isUp ? '#47B04B' : '#E74856';
+      ctx.fill();
+    });
+
+    // Time labels
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '11px Nunito';
+    ctx.textAlign = 'center';
+    ctx.fillText('oldest', padding.left + 20, h - 8);
+    ctx.fillText('newest', w - padding.right - 20, h - 8);
+    if (history.length > 2) {
+      ctx.fillText(`${history.length} ticks`, w / 2, h - 8);
+    }
+  }
+
+  // Chart hover functionality
+  function setupChartHover() {
+    const canvas = document.getElementById('stockDetailChart');
+    const tooltip = document.getElementById('chartTooltip');
+    if (!canvas || !tooltip) return;
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+
+      const { history, padding, chartW, chartH, min, max } = currentChartData;
+      if (!history || history.length < 2) {
+        tooltip.style.display = 'none';
+        return;
+      }
+
+      // Check if mouse is in chart area
+      if (x < padding.left || x > padding.left + chartW || y < padding.top || y > padding.top + chartH) {
+        tooltip.style.display = 'none';
+        return;
+      }
+
+      // Find closest data point
+      const relX = x - padding.left;
+      const dataIndex = Math.round((relX / chartW) * (history.length - 1));
+      const clampedIndex = Math.max(0, Math.min(history.length - 1, dataIndex));
+      const price = history[clampedIndex];
+      const ticksAgo = history.length - 1 - clampedIndex;
+
+      // Position tooltip
+      const tooltipX = (e.clientX - rect.left) + 15;
+      const tooltipY = (e.clientY - rect.top) - 10;
+      tooltip.style.left = tooltipX + 'px';
+      tooltip.style.top = tooltipY + 'px';
+      tooltip.style.display = 'block';
+      tooltip.innerHTML = `<strong>$${price.toFixed(2)}</strong><br><span style="color:var(--text-muted);font-size:0.75rem;">${ticksAgo === 0 ? 'current' : ticksAgo + ' ticks ago'}</span>`;
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      tooltip.style.display = 'none';
+    });
+  }
+
+  let selectedStock = null;
+  let currentOrderType = 'market'; // Preserve order type selection across rebuilds
+  let currentLimitPrice = null;
+  let currentShareCount = 1;
+
+  function selectStock(name) {
+    selectedStock = name;
+    const stock = currentStockPrices[name];
+    const detail = document.getElementById('stockDetail');
+    const stockList = document.getElementById('stockList');
+    const myPortfolio = currentPortfolios[mp.playerName] || {};
+    const myShares = myPortfolio[name] || 0;
+
+    // Highlight selected in list
+    stockList.querySelectorAll('.stock-row').forEach(r => r.classList.remove('selected'));
+    const selectedRow = stockList.querySelector('.stock-row[data-name="' + name + '"]');
+    if (selectedRow) selectedRow.classList.add('selected');
+
+    // Show detail panel
+    detail.style.display = 'block';
+    const nameEl = document.getElementById('stockDetailName');
+    nameEl.innerHTML = `
+      <h3 style="margin:0 0 8px 0;font-size:1.3rem;">${name}</h3>
+      <span class="stock-price" style="font-size:1.2rem;">$${stock.price.toFixed(2)}</span>
+      <span class="stock-change ${stock.change > 0 ? 'up' : stock.change < 0 ? 'down' : 'flat'}" style="font-size:0.9rem;margin-left:8px;">
+        ${stock.change >= 0 ? '+' : ''}${stock.change.toFixed(1)}%
+      </span>
+      ${myShares > 0 ? `<div style="margin-top:8px;font-size:0.85rem;color:var(--text-muted);">You own <strong>${myShares}</strong> shares (worth <span style="color:#F5A623;">$${(myShares * stock.price).toFixed(2)}</span>)</div>` : ''}
+    `;
+
+    // Draw large chart - resize canvas responsively
+    const canvas = document.getElementById('stockDetailChart');
+    const chartContainer = canvas.parentElement;
+    const containerRect = chartContainer.getBoundingClientRect();
+    const vw = window.innerWidth;
+    // Responsive chart sizes
+    let chartW = 500, chartH = 280;
+    if (vw <= 600) { chartW = Math.min(containerRect.width - 20, 320); chartH = 150; }
+    else if (vw <= 900) { chartW = Math.min(containerRect.width - 20, 400); chartH = 180; }
+    else { chartW = Math.min(containerRect.width - 20, 500); chartH = 280; }
+    canvas.width = chartW;
+    canvas.height = chartH;
+    canvas.style.width = chartW + 'px';
+    canvas.style.height = chartH + 'px';
+    drawLargeChart(canvas, stock.history);
+
+    // Trade controls - preserve current selections
+    const tradeEl = document.getElementById('stockDetailTrade');
+    const isLimit = currentOrderType === 'limit';
+    const limitVal = currentLimitPrice || stock.price.toFixed(2);
+    tradeEl.innerHTML = `
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+        <input type="number" id="detailShareInput" min="1" value="${currentShareCount}" placeholder="#" style="width:60px;">
+        <span id="detailCostPreview" style="font-size:0.85rem;color:var(--text-muted);">= $${(stock.price * currentShareCount).toFixed(2)}</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+        <label style="font-size:0.8rem;color:var(--text-muted);">
+          <input type="radio" name="orderType" value="market" ${!isLimit ? 'checked' : ''}> Market
+        </label>
+        <label style="font-size:0.8rem;color:var(--text-muted);">
+          <input type="radio" name="orderType" value="limit" ${isLimit ? 'checked' : ''}> Limit
+        </label>
+        <input type="number" id="detailLimitPrice" placeholder="Limit $" step="0.01" value="${limitVal}" style="width:80px;display:${isLimit ? 'block' : 'none'};">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="stock-buy" id="detailBuyBtn">Buy</button>
+        <button class="stock-sell" id="detailSellBtn" ${myShares <= 0 ? 'disabled' : ''}>Sell</button>
+      </div>
+      <div id="pendingOrdersArea" style="margin-top:12px;font-size:0.8rem;"></div>
+    `;
+
+    const shareInput = document.getElementById('detailShareInput');
+    const costPreview = document.getElementById('detailCostPreview');
+    const limitPriceInput = document.getElementById('detailLimitPrice');
+    const orderTypeRadios = tradeEl.querySelectorAll('input[name="orderType"]');
+
+    // Show/hide limit price input and persist selection
+    orderTypeRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        currentOrderType = tradeEl.querySelector('input[name="orderType"]:checked').value;
+        const showLimit = currentOrderType === 'limit';
+        limitPriceInput.style.display = showLimit ? 'block' : 'none';
+        if (showLimit && !limitPriceInput.value) {
+          limitPriceInput.value = stock.price.toFixed(2);
+        }
+      });
+    });
+
+    // Persist limit price
+    limitPriceInput.addEventListener('input', () => {
+      currentLimitPrice = limitPriceInput.value;
+    });
+
+    // Persist share count
+    shareInput.addEventListener('input', () => {
+      const s = parseInt(shareInput.value) || 1;
+      currentShareCount = s;
+      costPreview.textContent = '= $' + (stock.price * s).toFixed(2);
+    });
+
+    document.getElementById('detailBuyBtn').addEventListener('click', () => {
+      const shares = parseInt(shareInput.value) || 1;
+      const orderType = tradeEl.querySelector('input[name="orderType"]:checked').value;
+      const limitPrice = orderType === 'limit' ? parseFloat(limitPriceInput.value) : null;
+      mp.send({ type: 'buy_stock', payload: { entryName: name, shares, orderType, limitPrice } });
+    });
+
+    document.getElementById('detailSellBtn').addEventListener('click', () => {
+      const shares = Math.min(parseInt(shareInput.value) || 1, myShares);
+      const orderType = tradeEl.querySelector('input[name="orderType"]:checked').value;
+      const limitPrice = orderType === 'limit' ? parseFloat(limitPriceInput.value) : null;
+      mp.send({ type: 'sell_stock', payload: { entryName: name, shares, orderType, limitPrice } });
+    });
+  }
+
+  function rebuildMarketUI() {
+    const stockList = document.getElementById('stockList');
+    const stockDetail = document.getElementById('stockDetail');
+    if (!stockList) return;
+    stockList.innerHTML = '';
+    if (stockDetail) stockDetail.style.display = 'none';
+
+    const myPortfolio = currentPortfolios[mp.playerName] || {};
+    const names = Object.keys(currentStockPrices).sort();
+
+    if (names.length === 0) {
+      stockList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">No stocks yet. Spin the wheel to start the market.</div>';
+      return;
+    }
+
+    let totalPortfolioValue = 0;
+    names.forEach(name => {
+      const stock = currentStockPrices[name];
+      const myShares = myPortfolio[name] || 0;
+      const holdingValue = myShares * stock.price;
+      totalPortfolioValue += holdingValue;
+
+      const row = document.createElement('div');
+      row.className = 'stock-row';
+      row.setAttribute('data-name', name);
+
+      // Click to select
+      row.addEventListener('click', () => selectStock(name));
+
+      // Header line: name, sparkline, price, change
+      const header = document.createElement('div');
+      header.className = 'stock-header';
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'stock-name';
+      nameEl.textContent = name;
+      header.appendChild(nameEl);
+
+      if (stock.history && stock.history.length > 1) {
+        const spark = document.createElement('canvas');
+        spark.className = 'stock-sparkline';
+        spark.width = 120; spark.height = 40;
+        drawSparkline(spark, stock.history);
+        header.appendChild(spark);
+      }
+
+      const priceEl = document.createElement('span');
+      priceEl.className = 'stock-price';
+      priceEl.textContent = '$' + stock.price.toFixed(2);
+      header.appendChild(priceEl);
+
+      const changeEl = document.createElement('span');
+      changeEl.className = 'stock-change ' + (stock.change > 0 ? 'up' : stock.change < 0 ? 'down' : 'flat');
+      changeEl.textContent = (stock.change >= 0 ? '+' : '') + stock.change.toFixed(1) + '%';
+      header.appendChild(changeEl);
+
+      row.appendChild(header);
+
+      // Holdings info (compact)
+      if (myShares > 0) {
+        const holdEl = document.createElement('div');
+        holdEl.className = 'stock-holdings';
+        holdEl.innerHTML = '<strong>' + myShares + '</strong> shares (<span class="stock-portfolio-value">$' + holdingValue.toFixed(2) + '</span>)';
+        row.appendChild(holdEl);
+      }
+
+      stockList.appendChild(row);
+    });
+
+    // Auto-select first stock if none selected
+    if (names.length > 0 && (!selectedStock || !currentStockPrices[selectedStock])) {
+      selectStock(names[0]);
+    } else if (selectedStock && currentStockPrices[selectedStock]) {
+      selectStock(selectedStock);
+    }
+
+    const statusEl = document.getElementById('marketStatus');
+    if (statusEl) {
+      statusEl.textContent = '$' + totalPortfolioValue.toFixed(0) + ' portfolio';
+    }
+
+    // Render positions panel
+    renderPositionsPanel();
+  }
+
+  function renderPositionsPanel() {
+    const positionsList = document.getElementById('positionsList');
+    if (!positionsList) return;
+
+    const myPortfolio = currentPortfolios[mp.playerName] || {};
+    const myCostBasis = currentCostBases[mp.playerName] || {};
+    const holdings = Object.keys(myPortfolio).filter(name => myPortfolio[name] > 0);
+
+    if (holdings.length === 0) {
+      positionsList.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:8px 0;">No positions yet.<br>Buy some stocks to get started!</div>';
+      return;
+    }
+
+    let totalValue = 0;
+    let totalCost = 0;
+
+    positionsList.innerHTML = holdings.map(name => {
+      const shares = myPortfolio[name];
+      const stock = currentStockPrices[name];
+      const price = stock ? stock.price : 0;
+      const currentValue = shares * price;
+      totalValue += currentValue;
+
+      const cb = myCostBasis[name];
+      let avgCost = 0;
+      let costBasisTotal = 0;
+      let profitLoss = 0;
+      let profitLossPct = 0;
+
+      if (cb && cb.shares > 0) {
+        avgCost = cb.totalCost / cb.shares;
+        costBasisTotal = cb.totalCost;
+        totalCost += costBasisTotal;
+        profitLoss = currentValue - costBasisTotal;
+        profitLossPct = costBasisTotal > 0 ? (profitLoss / costBasisTotal) * 100 : 0;
+      }
+
+      const isProfit = profitLoss >= 0;
+      const plClass = isProfit ? 'up' : 'down';
+      const plSign = isProfit ? '+' : '';
+
+      return `
+        <div class="position-item" style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;" onclick="selectStock('${name}')">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-weight:600;font-size:0.9rem;">${name}</span>
+            <span style="font-size:0.85rem;color:var(--text-muted);">${shares} shares</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;">
+            <span style="color:var(--text-muted);">Avg: $${avgCost.toFixed(2)}</span>
+            <span style="color:var(--text-muted);">Val: $${currentValue.toFixed(0)}</span>
+          </div>
+          ${cb ? `
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;margin-top:4px;">
+            <span style="color:var(--text-muted);">P/L:</span>
+            <span class="stock-change ${plClass}">${plSign}$${profitLoss.toFixed(0)} (${plSign}${profitLossPct.toFixed(1)}%)</span>
+          </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+
+    // Add summary at bottom
+    const totalPL = totalValue - totalCost;
+    const totalPLPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
+    const isTotalProfit = totalPL >= 0;
+
+    positionsList.innerHTML += `
+      <div style="border-top:1px solid rgba(255,255,255,0.1);margin-top:8px;padding-top:8px;">
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;font-weight:600;">
+          <span>Total Value:</span>
+          <span>$${totalValue.toFixed(0)}</span>
+        </div>
+        ${totalCost > 0 ? `
+        <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-top:4px;">
+          <span style="color:var(--text-muted);">Total P/L:</span>
+          <span class="stock-change ${isTotalProfit ? 'up' : 'down'}">${isTotalProfit ? '+' : ''}$${totalPL.toFixed(0)} (${isTotalProfit ? '+' : ''}${totalPLPct.toFixed(1)}%)</span>
+        </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  // ── Orders UI ──
+  let currentPendingOrders = [];
+  let currentOrderHistory = [];
+
+  function renderOrdersUI(pending, history) {
+    currentPendingOrders = pending || [];
+    currentOrderHistory = history || [];
+
+    const pendingPanel = document.getElementById('pendingOrdersPanel');
+    const historyPanel = document.getElementById('orderHistoryPanel');
+
+    if (!pendingPanel || !historyPanel) return;
+
+    // Render pending orders
+    if (currentPendingOrders.length === 0) {
+      pendingPanel.innerHTML = '<div class="order-empty">No pending orders</div>';
+    } else {
+      pendingPanel.innerHTML = currentPendingOrders.map(order => `
+        <div class="order-item">
+          <span class="order-type ${order.isBuy ? 'buy' : 'sell'}">${order.isBuy ? 'BUY' : 'SELL'}</span>
+          <span class="order-stock">${order.entryName}</span>
+          <span class="order-shares">${order.filledShares}/${order.totalShares}</span>
+          ${order.orderType === 'limit' ? `<span class="order-price">@ $${order.limitPrice.toFixed(2)}</span>` : '<span class="order-price">Market</span>'}
+          <span class="order-status ${order.status}">${order.status}</span>
+          <button class="order-cancel" onclick="cancelOrder('${order.id}')">Cancel</button>
+        </div>
+      `).join('');
+    }
+
+    // Render order history
+    if (currentOrderHistory.length === 0) {
+      historyPanel.innerHTML = '<div class="order-empty">No order history</div>';
+    } else {
+      historyPanel.innerHTML = currentOrderHistory.map(order => {
+        const avgPrice = order.fills.length > 0
+          ? order.fills.reduce((sum, f) => sum + f.price * f.shares, 0) / order.filledShares
+          : 0;
+        return `
+          <div class="order-item">
+            <span class="order-type ${order.isBuy ? 'buy' : 'sell'}">${order.isBuy ? 'BUY' : 'SELL'}</span>
+            <span class="order-stock">${order.entryName}</span>
+            <span class="order-shares">${order.filledShares}/${order.totalShares}</span>
+            <span class="order-price">@ $${avgPrice.toFixed(2)}</span>
+            <span class="order-status ${order.status}">${order.status}</span>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // Order tab switching
+  document.querySelectorAll('.order-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.order-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const tabName = tab.dataset.tab;
+      document.getElementById('pendingOrdersPanel').style.display = tabName === 'pending' ? 'block' : 'none';
+      document.getElementById('orderHistoryPanel').style.display = tabName === 'history' ? 'block' : 'none';
+    });
+  });
+
+  // Global cancel order function
+  window.cancelOrder = function(orderId) {
+    mp.send({ type: 'cancel_order', payload: { orderId } });
+  };
+
+  // Global selectStock function (for position panel clicks)
+  window.selectStock = selectStock;
+
+  // Initialize chart hover functionality
+  setupChartHover();
 
   // ══════════════════════════════════════════════════════════════
   // ── MULTIPLAYER ──
@@ -2949,15 +3922,7 @@
 
       case 'config_synced': {
         if (mp.isHost) {
-          // Host already has the config, but still needs weight updates (e.g. boost reverts)
-          const serverConfig = msg.payload.config;
-          if (serverConfig && serverConfig.wheels) {
-            for (const [wid, wc] of Object.entries(serverConfig.wheels)) {
-              if (config.wheels[wid]) {
-                config.wheels[wid].entryWeights = wc.entryWeights || {};
-              }
-            }
-          }
+          // Host already has the authoritative config; just redraw
           const wcH = selectedWheelConfig();
           if (wcH) syncWheelConfig(mainWheel, wcH);
           mainWheel.invalidateLayout();
@@ -2965,6 +3930,7 @@
           refreshBoostPanel();
           break;
         }
+        // Non-host: apply full config (entryWeights are stripped by server)
         config = JSON.parse(JSON.stringify(msg.payload.config));
         selectedWheelId = config.activeWheelId;
         rebuildWheelSelector();
@@ -3033,7 +3999,7 @@
       }
 
       case 'boost_applied': {
-        // Force a wheel redraw for everyone (host skips config_synced)
+        // Only the boosting player receives this — apply weight locally for visual
         const ba = msg.payload;
         const wc2 = config.wheels[config.activeWheelId];
         if (wc2) {
@@ -3045,6 +4011,33 @@
           mainWheel.invalidateLayout();
           mainWheel.draw();
         }
+        refreshBoostPanel();
+        break;
+      }
+
+      case 'boost_notification': {
+        // Someone else boosted — show toast without weight info
+        const bn = msg.payload;
+        showToast(bn.name + ' boosted "' + bn.entry + '" for $' + bn.cost, 'BOOST');
+        setTimeout(hideToast, 2000);
+        break;
+      }
+
+      case 'boost_reverted': {
+        // Our personal boost was reverted after spin
+        const br = msg.payload;
+        const wc3 = config.wheels[config.activeWheelId];
+        if (wc3 && wc3.entryWeights) {
+          const key = br.weightKey;
+          if (wc3.entryWeights[key] != null) {
+            wc3.entryWeights[key] -= br.amount;
+            if (Math.abs(wc3.entryWeights[key]) < 0.001) delete wc3.entryWeights[key];
+          }
+          syncWheelConfig(mainWheel, wc3);
+          mainWheel.invalidateLayout();
+          mainWheel.draw();
+        }
+        refreshBoostPanel();
         break;
       }
 
@@ -3081,6 +4074,77 @@
         if (msg.payload.betResults && msg.payload.betResults.length > 0) {
           showBetResults(msg.payload.betResults);
         }
+        break;
+      }
+
+      case 'stock_prices': {
+        currentStockPrices = msg.payload.prices || {};
+        currentPortfolios = msg.payload.portfolios || {};
+        currentCostBases = msg.payload.costBases || {};
+        rebuildMarketUI();
+        break;
+      }
+
+      case 'stock_trade_result': {
+        const tr = msg.payload;
+        if (tr.success) {
+          // Order placed, not yet filled
+          if (tr.action === 'buy_order' || tr.action === 'sell_order') {
+            showToast(tr.message, 'ORDER');
+            // Update orders UI immediately with new pending order
+            if (tr.pendingOrders || tr.orderHistory) {
+              renderOrdersUI(tr.pendingOrders || [], tr.orderHistory || []);
+            }
+          } else {
+            // Legacy instant trades
+            showToast((tr.action === 'buy' ? 'Bought' : 'Sold') + ' ' + tr.shares + ' ' + tr.entryName + ' for $' + tr.totalCost, 'TRADE');
+          }
+        } else {
+          showToast(tr.message || 'Trade failed', 'ERROR');
+        }
+        setTimeout(hideToast, 2000);
+        break;
+      }
+
+      case 'order_update': {
+        const ou = msg.payload;
+        // Play sound on fill
+        if (ou.status === 'filled' || ou.status === 'partial') {
+          playSoundFile('chipsplaced.mp3', 0.5);
+        }
+        // Show notification
+        if (ou.status === 'filled') {
+          showToast(`Order filled: ${ou.isBuy ? 'Bought' : 'Sold'} ${ou.filledShares}x ${ou.entryName}`, 'FILLED');
+        } else if (ou.status === 'partial') {
+          const fill = ou.lastFill;
+          if (fill) {
+            showToast(`Partial fill: ${fill.shares}x ${ou.entryName} @ $${fill.price.toFixed(2)}`, 'FILL');
+          }
+        } else if (ou.status === 'cancelled') {
+          showToast(`Order cancelled: ${ou.message}`, 'ERROR');
+        }
+        setTimeout(hideToast, 1500);
+        // Update orders UI if present
+        if (ou.pendingOrders || ou.orderHistory) {
+          renderOrdersUI(ou.pendingOrders || [], ou.orderHistory || []);
+        }
+        break;
+      }
+
+      case 'orders_data': {
+        const od = msg.payload;
+        renderOrdersUI(od.pending || [], od.history || []);
+        break;
+      }
+
+      case 'cancel_order_result': {
+        const cr = msg.payload;
+        if (cr.success) {
+          showToast('Order cancelled', 'OK');
+        } else {
+          showToast(cr.message || 'Failed to cancel', 'ERROR');
+        }
+        setTimeout(hideToast, 1500);
         break;
       }
 
@@ -3130,24 +4194,26 @@
     textarea.readOnly = locked;
     textarea.style.opacity = locked ? '0.6' : '';
 
-    // Hide configure + entries tabs entirely for non-host
-    const configTabBtn = document.querySelector('.sidebar-tabs button[data-tab="configure"]');
-    const entriesTabBtn = document.querySelector('.sidebar-tabs button[data-tab="entries"]');
-    if (configTabBtn) configTabBtn.style.display = locked ? 'none' : '';
-    if (entriesTabBtn) entriesTabBtn.style.display = locked ? 'none' : '';
+    // Hide configure + entries menu buttons entirely for non-host
+    const configBtn = document.querySelector('.menu-btn[data-popup="configure"]');
+    const entriesBtn = document.querySelector('.menu-btn[data-popup="entries"]');
+    if (configBtn) configBtn.style.display = locked ? 'none' : '';
+    if (entriesBtn) entriesBtn.style.display = locked ? 'none' : '';
 
     // Hide wheel selector entirely (non-host can't switch wheels)
-    document.querySelector('.wheel-selector').style.display = locked ? 'none' : '';
+    const wheelSelector = document.getElementById('wheelSelector');
+    if (wheelSelector) wheelSelector.style.display = locked ? 'none' : '';
 
     // Hide entries editing controls
     document.querySelectorAll('.btn-shuffle, .btn-reset').forEach(b => b.style.display = locked ? 'none' : '');
 
-    // If locked and not on shop tab, switch to shop
+    // If locked and a host-only popup is open, close it
     if (locked) {
-      const activeTab = document.querySelector('.sidebar-tabs button.active');
-      if (activeTab && activeTab.dataset.tab !== 'shop') {
-        const shopBtn = document.querySelector('.sidebar-tabs button[data-tab="shop"]');
-        if (shopBtn) shopBtn.click();
+      const configPopup = document.getElementById('popup-configure');
+      const entriesPopup = document.getElementById('popup-entries');
+      if ((configPopup && configPopup.classList.contains('show')) ||
+          (entriesPopup && entriesPopup.classList.contains('show'))) {
+        closePopup();
       }
     }
 
@@ -3444,12 +4510,26 @@
   mainWheel.canvas.addEventListener('mousemove', (e) => {
     if (!mp.connected || mainWheel.spinning || mainWheel.names.length < 2) {
       if (betTooltip) { betTooltip.remove(); betTooltip = null; }
+      if (mainWheel.hoveredSegment !== -1) {
+        mainWheel.hoveredSegment = -1;
+        mainWheel.draw();
+      }
       return;
     }
     const idx = getSegmentFromClick(e);
     if (idx < 0) {
       if (betTooltip) { betTooltip.remove(); betTooltip = null; }
+      if (mainWheel.hoveredSegment !== -1) {
+        mainWheel.hoveredSegment = -1;
+        mainWheel.draw();
+      }
       return;
+    }
+    // Play tick and highlight when hovering a new segment
+    if (idx !== mainWheel.hoveredSegment) {
+      mainWheel.hoveredSegment = idx;
+      playTick(); // Same tick sound as wheel spinning
+      mainWheel.draw();
     }
     const entry = mainWheel.names[idx];
     const betsOnEntry = allBets.filter(b => b.entryIndex === idx && b.amount > 0);
@@ -3475,6 +4555,10 @@
 
   mainWheel.canvas.addEventListener('mouseleave', () => {
     if (betTooltip) { betTooltip.remove(); betTooltip = null; }
+    if (mainWheel.hoveredSegment !== -1) {
+      mainWheel.hoveredSegment = -1;
+      mainWheel.draw();
+    }
   });
 
   // Betting hint
@@ -3565,6 +4649,9 @@
       spinChainResults = [];
     }
 
+    // Server now sends personalized targetAngle for each client based on their local boosts
+    // so we DON'T clear entry weights - keep the player's boosted view
+
     showInitiator(initiator);
 
     // Determine which wheel object to spin
@@ -3625,6 +4712,7 @@
       // Track spin timing for hotbar boost item
       spinStartTime = startT;
       spinDurationMs = duration;
+      spinEndTime = startT + duration;
       activeBoostOffset = 0;
       boostTarget = 0;
       if (isMain) { rebuildHotbar(); startHotbarRefresh(); }
@@ -3639,7 +4727,8 @@
         } else {
           activeBoostOffset = boostTarget;
         }
-        const t = Math.min((now - startT) / duration, 1);
+        // Use spinDurationMs which can be extended by boosts
+        const t = Math.min((now - spinStartTime) / spinDurationMs, 1);
         wheel.rotation = startR + delta * (1 - Math.pow(1 - t, easePow)) + activeBoostOffset;
 
         // Tick sound
@@ -3688,6 +4777,8 @@
     rebuildHotbar();
     refreshBoostPanel();
 
+    // Boosts are reverted by server (boost_reverted messages) so no need to restore weights
+
     const isMain = wheelId === config.activeWheelId;
     const wheelTitle = isMain ? (config.wheels[wheelId]?.title || 'Main Wheel') : (config.wheels[wheelId]?.title || 'Sub-Wheel');
 
@@ -3701,7 +4792,7 @@
       }
       spinChainResults = [];
       playWinSound(winner, wheelId);
-      if (isMain) {
+      if (isMain && !mp.connected) {
         advanceCD(winner);
         applyCD(winner);
         mainWheel.invalidateLayout();
@@ -3748,7 +4839,7 @@
         break;
     }
 
-    if (isMain) {
+    if (isMain && !mp.connected) {
       advanceCD(winner);
       applyCD(winner);
       mainWheel.invalidateLayout();
