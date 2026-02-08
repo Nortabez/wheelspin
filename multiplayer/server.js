@@ -6,6 +6,15 @@ const { WebSocketServer } = require('ws');
 
 const PORT = parseInt(process.argv[2]) || 8080;
 
+// ── Word Dictionary for Wordle Robbery ──
+const WORD_LIST = JSON.parse(fs.readFileSync(path.join(__dirname, 'words.json'), 'utf8'));
+const WORD_SET = new Set(WORD_LIST);
+const WORDS_BY_LENGTH = {};
+for (const w of WORD_LIST) {
+  if (!WORDS_BY_LENGTH[w.length]) WORDS_BY_LENGTH[w.length] = [];
+  WORDS_BY_LENGTH[w.length].push(w);
+}
+
 // ── Serve static files ──
 const MIME = {
   '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
@@ -16,6 +25,21 @@ const MIME = {
 };
 
 const httpServer = http.createServer((req, res) => {
+  // API: list existing player names
+  if (req.url === '/api/players') {
+    const players = loadPlayers();
+    const names = [...players.keys()];
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(names));
+    return;
+  }
+
+  if (req.url === '/api/words') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(WORD_LIST));
+    return;
+  }
+
   let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
   filePath = decodeURIComponent(filePath);
   const ext = path.extname(filePath).toLowerCase();
@@ -28,6 +52,22 @@ const httpServer = http.createServer((req, res) => {
 
 // ── WebSocket server ──
 const wss = new WebSocketServer({ server: httpServer });
+
+// ── Config persistence ──
+const CONFIG_FILE = path.join(__dirname, 'config.json');
+
+function loadConfig() {
+  try {
+    const data = fs.readFileSync(CONFIG_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch { return null; }
+}
+
+function saveConfig() {
+  if (room.config) {
+    fs.writeFile(CONFIG_FILE, JSON.stringify(room.config, null, 2), () => {});
+  }
+}
 
 // ── Player data persistence ──
 const PLAYERS_FILE = path.join(__dirname, 'players.json');
@@ -45,7 +85,7 @@ function loadPlayers() {
 function savePlayers() {
   const arr = [];
   for (const [, p] of room.players) {
-    arr.push({ name: p.name, points: p.points, stats: p.stats, inventory: p.inventory || [], portfolio: p.portfolio || {}, costBasis: p.costBasis || {} });
+    arr.push({ name: p.name, points: p.points, stats: p.stats, inventory: p.inventory || [], portfolio: p.portfolio || {}, costBasis: p.costBasis || {}, upgrades: p.upgrades || {} });
   }
   fs.writeFile(PLAYERS_FILE, JSON.stringify(arr, null, 2), () => {});
 }
@@ -53,7 +93,7 @@ function savePlayers() {
 // ── Room state ──
 const room = {
   hostId: null,
-  config: null,
+  config: loadConfig(),
   clients: new Map(),
   players: loadPlayers(),
   spinState: { spinning: false, wheelId: null, targetAngle: 0, duration: 0, initiator: null, minSpins: 6, visitedChain: [] },
@@ -115,11 +155,58 @@ function advanceFatigue(wheelId, excludeIndex) {
 // ── Private Boosts ──
 const playerBoosts = {}; // { clientId: { wheelId: { weightKey: addedWeight } } }
 
+// ── Upgrade Definitions ──
+const UPGRADE_DEFS = {
+  bodyguards: {
+    name: 'Bodyguards',
+    description: 'Hire protection against robbery attempts',
+    baseCost: 500,
+    costFormula: (level) => 500 * Math.pow(2, level),
+    maxLevel: Infinity,
+  },
+  criminal_org: {
+    name: 'Criminal Organization',
+    description: 'Build a network of thieves to rob other players',
+    baseCost: 500,
+    costFormula: (level) => 500 * Math.pow(2, level),
+    maxLevel: Infinity,
+  },
+};
+
+// ── Robbery System ──
+const robberyCooldowns = new Map(); // playerName -> spinsRemaining
+const ROBBERY_COOLDOWN_SPINS = 5;
+const ROBBERY_MAX_PERCENT = 0.20; // max 20% of total assets
+const ROBBERY_MAX_FLAT = 500; // max flat $500
+
+function serializeUpgradeDefs() {
+  const defs = {};
+  for (const [id, def] of Object.entries(UPGRADE_DEFS)) {
+    defs[id] = { name: def.name, description: def.description, baseCost: def.baseCost,
+                 maxLevel: def.maxLevel === Infinity ? -1 : def.maxLevel };
+  }
+  return defs;
+}
+
 // ── Stock Market ──
 const STOCKS_FILE = path.join(__dirname, 'stocks.json');
 const STOCK_INITIAL_PRICE = 100;
-const STOCK_ALPHA = 0.15;
-const TRADE_IMPACT_BASE = 0.02; // Base price impact per share traded (2%)
+const GRAVITY_K = 0.025;            // Pull share price toward real value per tick
+const MOMENTUM_EFFECT = 0.5;        // How much momentum moves price per tick
+const MOMENTUM_DECAY = 0.95;        // Momentum fades 5% per tick
+const PLAYER_TRADE_MOMENTUM = 0.3;  // Momentum per sqrt(shares) from player trades
+const SPIN_WIN_MOMENTUM = 2.0;      // Momentum bump for spin winner
+const DEVELOPMENT_PER_WIN = 0.05;   // +0.05 development per win
+const EVENT_MOMENTUM = 0.5;         // Momentum per tick from events per unit strength
+const EVENT_DEVELOPMENT = 0.0005;   // Development change per tick from events (accumulates into real value)
+const MOMENTUM_DISTANCE_SCALE = 5;  // How quickly momentum dampens with distance from real value
+const BASE_LIQUIDITY = 4;           // Baseline shares available per tick per stock
+const ADDITIVE_DECAY = 0.7;         // Boost additives decay multiplier per spin
+const NOISE_AMPLITUDE = 0.003;      // Background price noise amplitude
+const GRAVITY_DEAD_ZONE = 0.10;     // No gravity pull within ±10% of real value
+
+// Analyst predictions: playerName -> Map(stockName -> { spinsLeft, errorMultiplier })
+const analystPredictions = new Map();
 
 function loadStocks() {
   try {
@@ -132,101 +219,189 @@ function saveStocks() {
   fs.writeFile(STOCKS_FILE, JSON.stringify(stockPrices, null, 2), () => {});
 }
 
-let stockPrices = loadStocks(); // { entryName: { price, prevPrice, history[] } }
+let stockPrices = loadStocks(); // { entryName: { price, realValue, development, momentum, prevPrice, history[] } }
 
-// Calculate volatility from price history (0 = stable, 1+ = volatile)
-function calculateVolatility(history) {
-  if (!history || history.length < 3) return 0.5; // neutral volatility
-  const recent = history.slice(-10); // last 10 prices
-  if (recent.length < 2) return 0.5;
-
-  // Calculate average price and standard deviation
-  const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
-  const variance = recent.reduce((sum, p) => sum + Math.pow(p - avg, 2), 0) / recent.length;
-  const stdDev = Math.sqrt(variance);
-
-  // Normalize: coefficient of variation (stdDev / avg)
-  const volatility = avg > 0 ? stdDev / avg : 0;
-  return Math.min(1, volatility * 5); // scale so 20% stdDev = 1.0 volatility
+// Migrate old stock format — backfill new fields
+for (const [name, stock] of Object.entries(stockPrices)) {
+  if (stock.realValue == null) stock.realValue = stock.price;
+  if (stock.development == null) stock.development = 1.0;
+  if (stock.momentum == null) stock.momentum = 0;
 }
 
-// Calculate momentum from price history (-1 = strong downtrend, +1 = strong uptrend)
-function calculateMomentum(history) {
-  if (!history || history.length < 3) return 0;
-  const recent = history.slice(-8); // last 8 prices
-  if (recent.length < 2) return 0;
+// ── Market Events ──
+const BULLISH_HEADLINES = [
+  '{STOCK} ANNOUNCES REVOLUTIONARY NEW PRODUCT',
+  '{STOCK} CEO BUYS 1 MILLION SHARES',
+  '{STOCK} BEATS EARNINGS BY 400%',
+  '{STOCK} SIGNS MASSIVE GOVERNMENT CONTRACT',
+  '{STOCK} GOES VIRAL ON SOCIAL MEDIA',
+  '{STOCK} ACQUIRES MAJOR COMPETITOR',
+  '{STOCK} RECEIVES ANALYST UPGRADE TO "STRONG BUY"',
+  '{STOCK} DISCOVERS CURE FOR MONDAY MORNINGS',
+  '{STOCK} REPORTS RECORD QUARTERLY PROFITS',
+  '{STOCK} GETS CELEBRITY ENDORSEMENT DEAL',
+  '{STOCK} LAUNCHES SUCCESSFUL IPO OF SUBSIDIARY',
+  '{STOCK} WINS PRESTIGIOUS INDUSTRY AWARD',
+  '{STOCK} EXPANDS INTO 47 NEW MARKETS',
+  '{STOCK} INSIDER BUYING FRENZY DETECTED',
+  '{STOCK} PARTNERSHIP WITH MAJOR TECH GIANT ANNOUNCED',
+  'BREAKING: {STOCK} STOCK ADDED TO S&P 500',
+  '{STOCK} NEW FACTORY OPENS AHEAD OF SCHEDULE',
+  'ANALYSTS: {STOCK} IS THE NEXT BIG THING',
+  '{STOCK} CUSTOMER SATISFACTION HITS ALL-TIME HIGH',
+  '{STOCK} PATENTS GROUNDBREAKING TECHNOLOGY',
+];
 
-  // Simple linear regression slope
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-  for (let i = 0; i < recent.length; i++) {
-    sumX += i;
-    sumY += recent[i];
-    sumXY += i * recent[i];
-    sumX2 += i * i;
+const BEARISH_HEADLINES = [
+  '{STOCK} EXECUTIVES CAUGHT IN PONZI SCHEME',
+  '{STOCK} ENTIRE BOARD RESIGNS MYSTERIOUSLY',
+  '{STOCK} PRODUCT RECALLED AFTER EXPLODING',
+  '{STOCK} RUGPULLED BY EXECUTIVES',
+  '{STOCK} CEO ARRESTED FOR TAX FRAUD',
+  '{STOCK} FACTORY BURNS DOWN IN SUSPICIOUS FIRE',
+  '{STOCK} LOSES MAJOR LAWSUIT - OWES BILLIONS',
+  '{STOCK} ACCOUNTING SCANDAL REVEALED',
+  '{STOCK} HIT WITH MASSIVE REGULATORY FINE',
+  '{STOCK} DATA BREACH EXPOSES MILLIONS OF USERS',
+  '{STOCK} PRODUCT FOUND TO CONTAIN TOXIC MATERIALS',
+  '{STOCK} CFO SEEN FLEEING COUNTRY WITH BRIEFCASE',
+  '{STOCK} DOWNGRADED TO "SELL" BY ALL ANALYSTS',
+  '{STOCK} WAREHOUSE FOUND FULL OF UNSOLD INVENTORY',
+  'BREAKING: {STOCK} UNDER SEC INVESTIGATION',
+  '{STOCK} COMPETITOR RELEASES SUPERIOR PRODUCT',
+  '{STOCK} INTERN ACCIDENTALLY DELETES ENTIRE DATABASE',
+  '{STOCK} CAUGHT FAKING CUSTOMER REVIEWS',
+  '{STOCK} SUPPLY CHAIN COMPLETELY COLLAPSES',
+  '{STOCK} LOSES EXCLUSIVE CONTRACT TO RIVAL',
+];
+
+// Default world event templates (host can add more via config)
+const DEFAULT_WORLD_EVENTS = [
+  { headline: 'GLOBAL RECESSION FEARS GRIP MARKETS', affects: 'all', sentiment: -1, strength: 1.5 },
+  { headline: 'CENTRAL BANK CUTS INTEREST RATES TO ZERO', affects: 'all', sentiment: 1, strength: 1.5 },
+  { headline: 'MASSIVE STIMULUS PACKAGE ANNOUNCED', affects: 'all', sentiment: 1, strength: 2.0 },
+  { headline: 'MARKET CRASH - PANIC SELLING EVERYWHERE', affects: 'all', sentiment: -1, strength: 2.0 },
+  { headline: 'BULL RUN BEGINS - INVESTORS PILE IN', affects: 'all', sentiment: 1, strength: 1.8 },
+  { headline: 'TRADE WAR ESCALATES - TARIFFS DOUBLED', affects: 'all', sentiment: -1, strength: 1.3 },
+  { headline: 'ALIEN TECHNOLOGY DISCOVERED - STOCKS SOAR', affects: 'all', sentiment: 1, strength: 2.0 },
+  { headline: 'METEOR HEADING FOR EARTH - SELL EVERYTHING', affects: 'all', sentiment: -1, strength: 2.0 },
+  { headline: 'FREE MONEY GLITCH FOUND IN THE ECONOMY', affects: 'all', sentiment: 1, strength: 1.5 },
+  { headline: 'INFLATION HITS 900% - EVERYTHING IS FINE', affects: 'all', sentiment: -1, strength: 1.8 },
+  { headline: 'NEW TAX BREAKS FOR EVERY COMPANY', affects: 'all', sentiment: 1, strength: 1.0 },
+  { headline: 'GOVERNMENT BANS SHORT SELLING', affects: 'all', sentiment: 1, strength: 1.2 },
+  { headline: 'INTERNET GOES DOWN WORLDWIDE FOR 3 HOURS', affects: 'all', sentiment: -1, strength: 1.0 },
+  { headline: 'ELON TWEETS "STOCKS ARE TOO HIGH IMO"', affects: 'all', sentiment: -1, strength: 1.5 },
+  { headline: 'GLOBAL PEACE DECLARED - MARKETS CELEBRATE', affects: 'all', sentiment: 1, strength: 1.3 },
+];
+
+const MAX_ACTIVE_EVENTS = 4;
+const EVENT_MIN_INTERVAL = 15000; // 15 seconds minimum between events
+const EVENT_MAX_INTERVAL = 45000; // 45 seconds maximum
+const WORLD_EVENT_CHANCE = 0.25; // 25% chance an event is a world event
+let activeEvents = []; // { id, stockName, headline, sentiment, strength, spinsRemaining, createdAt, isWorld, affectedStocks[] }
+let nextEventId = 1;
+let eventTimer = null;
+
+function getWorldEventTemplates() {
+  // Merge default world events with host-configured ones
+  const custom = (room.config && room.config.worldEvents) || [];
+  return [...DEFAULT_WORLD_EVENTS, ...custom];
+}
+
+function generateMarketEvent() {
+  const stockNames = Object.keys(stockPrices);
+  if (stockNames.length === 0) { scheduleNextEvent(); return; }
+  if (activeEvents.length >= MAX_ACTIVE_EVENTS) { scheduleNextEvent(); return; }
+
+  const isWorldEvent = Math.random() < WORLD_EVENT_CHANCE;
+
+  if (isWorldEvent) {
+    // World event — affects multiple or all stocks
+    const templates = getWorldEventTemplates();
+    if (templates.length === 0) { generateStockEvent(stockNames); return; }
+    const template = templates[Math.floor(Math.random() * templates.length)];
+
+    // Determine affected stocks
+    let affectedStocks;
+    if (template.affects === 'all') {
+      affectedStocks = [...stockNames];
+    } else if (Array.isArray(template.affects)) {
+      affectedStocks = template.affects.filter(s => stockNames.includes(s));
+      if (affectedStocks.length === 0) { generateStockEvent(stockNames); return; }
+    } else if (typeof template.affects === 'string' && stockNames.includes(template.affects)) {
+      affectedStocks = [template.affects];
+    } else {
+      affectedStocks = [...stockNames];
+    }
+
+    const event = {
+      id: nextEventId++,
+      stockName: 'WORLD',
+      headline: template.headline,
+      sentiment: template.sentiment || (Math.random() > 0.5 ? 1 : -1),
+      strength: template.strength || 1.5,
+      spinsRemaining: 2 + Math.floor(Math.random() * 3), // 2-4 spins (longer for world events)
+      createdAt: Date.now(),
+      isWorld: true,
+      affectedStocks,
+    };
+
+    activeEvents.push(event);
+    console.log(`[event] WORLD ${event.sentiment > 0 ? 'BULLISH' : 'BEARISH'}: ${event.headline} (strength: ${event.strength.toFixed(1)}, affects: ${affectedStocks.length} stocks, duration: ${event.spinsRemaining} spins)`);
+    broadcast({ type: 'market_event', payload: { event } });
+  } else {
+    generateStockEvent(stockNames);
   }
-  const n = recent.length;
-  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
 
-  // Normalize slope relative to average price
-  const avg = sumY / n;
-  const normalizedSlope = avg > 0 ? slope / avg : 0;
-
-  // Clamp to [-1, 1]
-  return Math.max(-1, Math.min(1, normalizedSlope * 20));
+  scheduleNextEvent();
 }
 
-// Calculate resistance (high = hard to move price, low = easy to move)
-// Based on volatility: stable prices resist change, volatile prices move easily
-function calculateResistance(history) {
-  const volatility = calculateVolatility(history);
-  // Low volatility = high resistance (0.5 to 2.0 range)
-  // High volatility = low resistance
-  return 0.5 + (1 - volatility) * 1.5;
-}
+function generateStockEvent(stockNames) {
+  // Single-stock event
+  const stockName = stockNames[Math.floor(Math.random() * stockNames.length)];
+  const isBullish = Math.random() > 0.5;
+  const templates = isBullish ? BULLISH_HEADLINES : BEARISH_HEADLINES;
+  const template = templates[Math.floor(Math.random() * templates.length)];
+  const headline = template.replace('{STOCK}', stockName);
 
-// Calculate support for price movement in a direction
-// Returns a multiplier: >1 = momentum supports this direction, <1 = momentum opposes
-function calculateSupport(history, direction) {
-  const momentum = calculateMomentum(history);
-  // direction: 1 = buying (price up), -1 = selling (price down)
-  // If momentum matches direction, support is higher
-  const alignment = momentum * direction;
-  // Range: 0.5 (opposing momentum) to 1.5 (aligned momentum)
-  return 1 + alignment * 0.5;
-}
-
-// Apply trade impact to stock price
-function applyTradeImpact(entryName, shares, isBuy) {
-  const stock = stockPrices[entryName];
-  if (!stock) return;
-
-  const direction = isBuy ? 1 : -1;
-  const resistance = calculateResistance(stock.history);
-  const support = calculateSupport(stock.history, direction);
-
-  // Impact = base * shares * support / resistance
-  // Buying pushes price up, selling pushes price down
-  const rawImpact = TRADE_IMPACT_BASE * Math.sqrt(shares); // sqrt for diminishing returns
-  const adjustedImpact = rawImpact * support / resistance;
-
-  const priceChange = stock.price * adjustedImpact * direction;
-  stock.prevPrice = stock.price;
-  stock.price = Math.max(1, stock.price + priceChange);
-  stock.price = Math.round(stock.price * 100) / 100;
-
-  // Add to history
-  stock.history.push(stock.price);
-  if (stock.history.length > 50) stock.history.shift();
-
-  saveStocks();
-
-  return {
-    priceChange,
-    resistance,
-    support,
-    momentum: calculateMomentum(stock.history),
-    volatility: calculateVolatility(stock.history)
+  const event = {
+    id: nextEventId++,
+    stockName,
+    headline,
+    sentiment: isBullish ? 1 : -1,
+    strength: 0.5 + Math.random() * 1.5,
+    spinsRemaining: 1 + Math.floor(Math.random() * 4), // 1-4 spins
+    createdAt: Date.now(),
+    isWorld: false,
+    affectedStocks: [stockName],
   };
+
+  activeEvents.push(event);
+  console.log(`[event] ${isBullish ? 'BULLISH' : 'BEARISH'}: ${headline} (strength: ${event.strength.toFixed(1)}, duration: ${event.spinsRemaining} spins)`);
+  broadcast({ type: 'market_event', payload: { event } });
+}
+
+function scheduleNextEvent() {
+  if (eventTimer) clearTimeout(eventTimer);
+  const delay = EVENT_MIN_INTERVAL + Math.random() * (EVENT_MAX_INTERVAL - EVENT_MIN_INTERVAL);
+  eventTimer = setTimeout(generateMarketEvent, delay);
+}
+
+// Start event generation
+scheduleNextEvent();
+
+// Compute base weights (without player boosts) for real value calculation
+function computeBaseWeights(wheelId, entries) {
+  const wc = room.config && room.config.wheels[wheelId];
+  if (!wc) return entries.map(() => 1);
+  const ew = wc.entryWeights || {};
+  ensureHiddenWeights(wheelId);
+  return entries.map((name, idx) => {
+    const hidden = hiddenWeights[wheelId][idx] || 1.0;
+    const base = ew[name] != null ? ew[name] : 1;
+    const fatigue = fatigueWeights[wheelId] ? (fatigueWeights[wheelId][idx] || 1.0) : 1.0;
+    return Math.max(0.01, hidden * base * fatigue);
+  });
 }
 
 function ensureStocks(wheelId) {
@@ -238,7 +413,9 @@ function ensureStocks(wheelId) {
   const uniqueNames = [...new Set(entries)];
   for (const name of uniqueNames) {
     if (!stockPrices[name]) {
-      stockPrices[name] = { price: STOCK_INITIAL_PRICE, prevPrice: STOCK_INITIAL_PRICE, history: [STOCK_INITIAL_PRICE] };
+      const variance = 1 + (Math.random() * 0.1 - 0.05);
+      const initPrice = Math.round(STOCK_INITIAL_PRICE * variance * 100) / 100;
+      stockPrices[name] = { price: initPrice, prevPrice: initPrice, realValue: initPrice, development: 1.0, momentum: 0, history: [initPrice] };
     }
   }
   for (const name of Object.keys(stockPrices)) {
@@ -274,57 +451,16 @@ function computeEffectiveWeights(wheelId, entries) {
   });
 }
 
-function updateStockPrices(wheelId, winnerName) {
-  const activeWheelId = room.config && room.config.activeWheelId;
-  if (wheelId !== activeWheelId) return;
-  const wc = room.config && room.config.wheels[wheelId];
-  if (!wc) return;
-  const entries = (wc.entries || '').split('\n').map(s => s.trim()).filter(Boolean);
-  if (entries.length === 0) return;
-  const uniqueNames = [...new Set(entries)];
-  ensureStocks(wheelId);
-
-  const effectiveWeights = computeEffectiveWeights(wheelId, entries);
-  const totalWeight = effectiveWeights.reduce((a, b) => a + b, 0);
-
-  // Simulate 1000 outcomes
-  const simCounts = {};
-  for (const name of uniqueNames) simCounts[name] = 0;
-  for (let s = 0; s < 1000; s++) {
-    const r = Math.random();
-    let cum = 0;
-    for (let i = 0; i < entries.length; i++) {
-      cum += effectiveWeights[i] / totalWeight;
-      if (r <= cum) { simCounts[entries[i]]++; break; }
-    }
-  }
-  // Actual winner counts 100x
-  simCounts[winnerName] = (simCounts[winnerName] || 0) + 100;
-  const totalSim = 1100;
-
-  for (const name of uniqueNames) {
-    const stock = stockPrices[name];
-    if (!stock) continue;
-    stock.prevPrice = stock.price;
-    // Expected freq = count of this name / total entries (perceived equal chance)
-    const nameCount = entries.filter(e => e === name).length;
-    const expectedFreq = nameCount / entries.length;
-    const observedFreq = simCounts[name] / totalSim;
-    const ratio = expectedFreq > 0 ? observedFreq / expectedFreq : 1;
-    stock.price = Math.max(1, stock.price * (1 + STOCK_ALPHA * (ratio - 1)));
-    stock.price = Math.round(stock.price * 100) / 100;
-    stock.history.push(stock.price);
-    if (stock.history.length > 50) stock.history.shift();
-  }
-  saveStocks();
-  broadcastStockPrices();
-}
-
 function broadcastStockPrices() {
+  const CHANGE_LOOKBACK = 5; // Compare against price from 5 ticks ago
   const prices = {};
   for (const [name, stock] of Object.entries(stockPrices)) {
-    const change = stock.prevPrice > 0 ? ((stock.price - stock.prevPrice) / stock.prevPrice * 100) : 0;
-    prices[name] = { price: stock.price, prevPrice: stock.prevPrice, change: Math.round(change * 100) / 100, history: stock.history };
+    // Calculate % change over multiple ticks for a more meaningful number
+    const h = stock.history || [];
+    const lookbackIdx = Math.max(0, h.length - CHANGE_LOOKBACK - 1);
+    const refPrice = h.length > 1 ? h[lookbackIdx] : stock.prevPrice;
+    const change = refPrice > 0 ? ((stock.price - refPrice) / refPrice * 100) : 0;
+    prices[name] = { price: stock.price, prevPrice: stock.prevPrice, change: Math.round(change * 100) / 100, history: stock.history, momentum: Math.round(stock.momentum * 100) / 100 };
   }
   const portfolios = {};
   const costBases = {};
@@ -336,75 +472,35 @@ function broadcastStockPrices() {
       costBases[player.name] = { ...player.costBasis };
     }
   }
-  broadcast({ type: 'stock_prices', payload: { prices, portfolios, costBases } });
+  broadcast({ type: 'stock_prices', payload: { prices, portfolios, costBases, events: activeEvents } });
+
+  // Send per-client analyst predictions (estimated values with error)
+  for (const [playerName, preds] of analystPredictions) {
+    if (preds.size === 0) continue;
+    const clientEntry = [...room.clients.entries()].find(([, c]) => c.name === playerName);
+    if (!clientEntry) continue;
+    const [, client] = clientEntry;
+    if (client.ws.readyState !== 1) continue;
+    const analystData = {};
+    for (const [sn, pred] of preds) {
+      const stock = stockPrices[sn];
+      if (stock) {
+        analystData[sn] = {
+          estimatedValue: Math.round(stock.realValue * pred.errorMultiplier * 100) / 100,
+          spinsLeft: pred.spinsLeft,
+        };
+      }
+    }
+    send(client.ws, { type: 'analyst_update', payload: analystData });
+  }
 }
 
-// ── Stock Price Evolution (when idle) ──
+// ── Stock Price Evolution ──
 const EVOLUTION_INTERVAL = 1000; // 1 second
-let lastSpinTime = Date.now(); // Track when last real spin happened
-
-// Check if we're in anchor mode (5+ minutes since last activity)
-function isAnchorMode() {
-  const elapsed = Date.now() - lastSpinTime;
-  return elapsed >= 300000; // 5 minutes
-}
-
-// Calculate decay multiplier based on time since last spin
-function getEvolutionDecay() {
-  const elapsed = Date.now() - lastSpinTime;
-  const seconds = elapsed / 1000;
-
-  // First 30 seconds: full activity
-  if (seconds < 30) return 1.0;
-
-  // 30s to 2min: decay from 1.0 to 0.5
-  if (seconds < 120) {
-    return 1.0 - (0.5 * (seconds - 30) / 90);
-  }
-
-  // 2min to 5min: decay from 0.5 to 0.1
-  if (seconds < 300) {
-    return 0.5 - (0.4 * (seconds - 120) / 180);
-  }
-
-  // After 5min: switch to anchor mode (handled separately)
-  return 0;
-}
-
-// Anchor mode: small random fluctuations around current price
-function anchorPrices() {
-  if (Object.keys(stockPrices).length === 0) return;
-
-  let changed = false;
-  for (const [name, stock] of Object.entries(stockPrices)) {
-    // Small random fluctuation: +/- 0.5% max
-    const fluctuation = (Math.random() - 0.5) * 0.01; // -0.5% to +0.5%
-    stock.prevPrice = stock.price;
-    stock.price = Math.max(1, stock.price * (1 + fluctuation));
-    stock.price = Math.round(stock.price * 100) / 100;
-
-    // Add to history but don't let it grow too large
-    stock.history.push(stock.price);
-    if (stock.history.length > 50) stock.history.shift();
-    changed = true;
-  }
-
-  if (changed) {
-    saveStocks();
-    broadcastStockPrices();
-  }
-}
 
 function evolveStockPrices() {
-  // Don't evolve during countdown or spinning
-  if (readyState.active || room.spinState.spinning) return;
+  if (room.spinState.spinning) return;
   if (!room.config || !room.config.activeWheelId) return;
-
-  // After 5 minutes: switch to anchor mode (small random fluctuations)
-  if (isAnchorMode()) {
-    anchorPrices();
-    return;
-  }
 
   const wheelId = room.config.activeWheelId;
   const wc = room.config.wheels[wheelId];
@@ -414,88 +510,106 @@ function evolveStockPrices() {
   if (entries.length < 2) return;
   if (Object.keys(stockPrices).length === 0) return;
 
-  // Compute effective weights (hidden * base, but no player boosts since those are temporary)
-  ensureHiddenWeights(wheelId);
-  const ew = wc.entryWeights || {};
-  const weights = entries.map((name, idx) => {
-    const hidden = hiddenWeights[wheelId][idx] || 1.0;
-    const base = ew[name] != null ? ew[name] : 1;
-    const fatigue = fatigueWeights[wheelId] ? (fatigueWeights[wheelId][idx] || 1.0) : 1.0;
-    return Math.max(0.01, hidden * base * fatigue);
+  // Compute base weights (no player boosts) for real value calculation
+  const baseWeights = computeBaseWeights(wheelId, entries);
+  const totalWeight = baseWeights.reduce((a, b) => a + b, 0);
+  const avgProbability = 1 / entries.length;
+
+  // Build per-stock probability by aggregating duplicate entry weights
+  const stockProb = {};
+  entries.forEach((name, idx) => {
+    const prob = baseWeights[idx] / totalWeight;
+    stockProb[name] = (stockProb[name] || 0) + prob;
   });
-  const totalWeight = weights.reduce((a, b) => a + b, 0);
 
-  // Get decay multiplier based on time since last spin
-  const decay = getEvolutionDecay();
-
-  // Simulate multiple wheel spins per tick for more dynamic market activity
-  // More entries = more simulations to keep activity spread out
-  const numSimulations = Math.min(Math.max(3, Math.floor(entries.length / 2)), 8);
-
-  // Accumulate trades per stock to apply in batch
-  const trades = {}; // { entryName: { buy: qty, sell: qty } }
-
-  for (let sim = 0; sim < numSimulations; sim++) {
-    // Simulate a wheel spin to pick winner
-    const rand = Math.random();
-    let cumulative = 0;
-    let winnerIndex = entries.length - 1;
-    for (let i = 0; i < entries.length; i++) {
-      cumulative += weights[i] / totalWeight;
-      if (rand <= cumulative) { winnerIndex = i; break; }
-    }
-
-    // Find opposite entry (halfway around the wheel)
-    const oppositeIndex = (winnerIndex + Math.floor(entries.length / 2)) % entries.length;
-
-    const winnerName = entries[winnerIndex];
-    const oppositeName = entries[oppositeIndex];
-
-    // Random buy quantity (1-20) for winner - bullish pressure, scaled by decay
-    const baseBuyQty = 1 + Math.floor(Math.random() * 20);
-    const buyQty = Math.max(1, Math.round(baseBuyQty * decay));
-    // Random sell quantity (1-18) for opposite - bearish pressure, scaled by decay
-    const baseSellQty = 1 + Math.floor(Math.random() * 18);
-    const sellQty = Math.max(1, Math.round(baseSellQty * decay));
-
-    // Accumulate trades
-    if (!trades[winnerName]) trades[winnerName] = { buy: 0, sell: 0 };
-    trades[winnerName].buy += buyQty;
-
-    if (oppositeName !== winnerName) {
-      if (!trades[oppositeName]) trades[oppositeName] = { buy: 0, sell: 0 };
-      trades[oppositeName].sell += sellQty;
+  // Apply active events: nudge development (real value) + add momentum
+  for (const ev of activeEvents) {
+    const targets = ev.affectedStocks || [ev.stockName];
+    for (const stockName of targets) {
+      const stock = stockPrices[stockName];
+      if (!stock) continue;
+      // Events shift real value via development
+      stock.development += ev.sentiment * ev.strength * EVENT_DEVELOPMENT;
+      stock.development = Math.max(0.1, stock.development);
+      // Events also add momentum (for short-term price pressure)
+      stock.momentum += EVENT_MOMENTUM * ev.sentiment * ev.strength;
     }
   }
 
-  // Add simulated trades to market liquidity pool (for order matching)
-  // AND apply as trade impact (for price movement)
-  let changed = false;
-  for (const [name, trade] of Object.entries(trades)) {
-    if (!stockPrices[name]) continue;
+  for (const [name, stock] of Object.entries(stockPrices)) {
+    // Recompute real value from probability and development
+    const prob = stockProb[name] || avgProbability;
+    const probabilityFactor = prob / avgProbability;
+    stock.realValue = STOCK_INITIAL_PRICE * probabilityFactor * stock.development;
+    stock.realValue = Math.round(stock.realValue * 100) / 100;
 
+    // Gravity: pull share price toward real value (dead zone: no pull within ±10%)
+    const priceDiff = stock.realValue > 0 ? (stock.price - stock.realValue) / stock.realValue : 0;
+    const gravity = Math.abs(priceDiff) > GRAVITY_DEAD_ZONE
+      ? GRAVITY_K * (stock.realValue - stock.price)
+      : 0;
+
+    // Momentum dampening: less effect the further price is from real value
+    const deviation = stock.realValue > 0 ? Math.abs(stock.price - stock.realValue) / stock.realValue : 0;
+    const momentumDampening = 1 / (1 + deviation * MOMENTUM_DISTANCE_SCALE);
+    const effectiveMomentum = stock.momentum * MOMENTUM_EFFECT * momentumDampening;
+
+    // Momentum-driven price changes consume liquidity (AI market trades)
     const liquidity = getMarketLiquidity(name);
+    let momentumPriceEffect = 0;
+    if (effectiveMomentum > 0 && liquidity.sellVolume > 0) {
+      // Positive momentum = AI buys, consumes sell liquidity
+      const volumeUsed = Math.min(Math.abs(effectiveMomentum) * 2, liquidity.sellVolume);
+      liquidity.sellVolume -= volumeUsed;
+      momentumPriceEffect = effectiveMomentum * (volumeUsed / (Math.abs(effectiveMomentum) * 2 || 1));
+    } else if (effectiveMomentum < 0 && liquidity.buyVolume > 0) {
+      // Negative momentum = AI sells, consumes buy liquidity
+      const volumeUsed = Math.min(Math.abs(effectiveMomentum) * 2, liquidity.buyVolume);
+      liquidity.buyVolume -= volumeUsed;
+      momentumPriceEffect = effectiveMomentum * (volumeUsed / (Math.abs(effectiveMomentum) * 2 || 1));
+    }
 
-    // Add volume to liquidity pool
-    // Simulated "buys" create buy-side liquidity (can fill player sell orders)
-    // Simulated "sells" create sell-side liquidity (can fill player buy orders)
-    liquidity.buyVolume += trade.buy;
-    liquidity.sellVolume += trade.sell;
+    // Price change = gravity + volume-limited momentum + noise
+    const noise = stock.price * (Math.random() - 0.5) * 2 * NOISE_AMPLITUDE;
+    const priceChange = gravity + momentumPriceEffect + noise;
 
-    // Net the trades for price impact
-    const netBuy = trade.buy - trade.sell;
-    if (netBuy > 0) {
-      applyTradeImpact(name, netBuy, true);
-      changed = true;
-    } else if (netBuy < 0) {
-      applyTradeImpact(name, -netBuy, false);
-      changed = true;
+    stock.prevPrice = stock.price;
+    stock.price = Math.max(0.01, stock.price + priceChange);
+    stock.price = Math.round(stock.price * 100) / 100;
+
+    // Decay momentum
+    stock.momentum *= MOMENTUM_DECAY;
+    if (Math.abs(stock.momentum) < 0.001) stock.momentum = 0;
+
+    // History
+    stock.history.push(stock.price);
+    if (stock.history.length > 50) stock.history.shift();
+  }
+
+  // Generate liquidity — skewed by how far price is from real value
+  for (const name of Object.keys(stockPrices)) {
+    const stock = stockPrices[name];
+    const liquidity = getMarketLiquidity(name);
+    // Deviation: positive = overvalued, negative = undervalued
+    const dev = stock.realValue > 0 ? (stock.price - stock.realValue) / stock.realValue : 0;
+    // Overvalued → more sell pressure (profit-taking), less buy interest
+    // Undervalued → more buy pressure (bargain hunters), less sell interest
+    const sellBias = Math.max(0, dev * BASE_LIQUIDITY * 3);  // extra sellers when overvalued
+    const buyBias = Math.max(0, -dev * BASE_LIQUIDITY * 3);  // extra buyers when undervalued
+    liquidity.buyVolume += BASE_LIQUIDITY + buyBias;
+    liquidity.sellVolume += BASE_LIQUIDITY + sellBias;
+    // Events increase liquidity for affected stocks
+    for (const ev of activeEvents) {
+      const targets = ev.affectedStocks || [ev.stockName];
+      if (targets.includes(name)) {
+        liquidity.buyVolume += ev.strength * 2;
+        liquidity.sellVolume += ev.strength * 2;
+      }
     }
   }
 
-  if (changed) {
-    broadcastStockPrices();
-  }
+  saveStocks();
+  broadcastStockPrices();
 }
 
 // Start price evolution timer
@@ -575,7 +689,7 @@ function broadcast(msg, excludeId) {
 function getPlayerList() {
   const list = [];
   for (const [, p] of room.players) {
-    list.push({ name: p.name, points: p.points, stats: p.stats, inventory: p.inventory || [], connected: p.connected, isHost: p.clientId === room.hostId, color: playerColors.get(p.name) || '#888' });
+    list.push({ name: p.name, points: p.points, stats: p.stats, inventory: p.inventory || [], upgrades: p.upgrades || {}, connected: p.connected, isHost: p.clientId === room.hostId, color: playerColors.get(p.name) || '#888' });
   }
   return list;
 }
@@ -620,8 +734,9 @@ function handleJoin(ws, clientId, payload) {
     if (!player.inventory) player.inventory = [];
     if (!player.portfolio) player.portfolio = {};
     if (!player.costBasis) player.costBasis = {}; // { entryName: { totalCost, shares } }
+    if (!player.upgrades) player.upgrades = {};
   } else {
-    player = { name, points: 1000, stats: { totalSpins: 0, totalWins: 0 }, inventory: [], portfolio: {}, costBasis: {}, connected: true, clientId };
+    player = { name, points: 100, stats: { totalSpins: 0, totalWins: 0 }, inventory: [], portfolio: {}, costBasis: {}, upgrades: {}, connected: true, clientId };
     room.players.set(name, player);
   }
 
@@ -633,6 +748,15 @@ function handleJoin(ws, clientId, payload) {
       isHost,
       config: room.config,
       players: getPlayerList(),
+      upgradeDefs: serializeUpgradeDefs(),
+      activeRobberies: [...activeRobberies.values()].map(r => ({
+        id: r.id, attackerName: r.attackerName, targetName: r.targetName,
+        attackLevel: r.attackLevel, defenseLevel: r.defenseLevel,
+        wordLength: r.wordLength, startedAt: r.startedAt, resolveAt: r.resolveAt,
+        guesses: r.guesses, maxGuesses: r.maxGuesses, victimOnline: r.victimOnline,
+        durationMs: WORDLE_DURATION_MS,
+      })),
+      robberyCooldowns: Object.fromEntries(robberyCooldowns),
     },
   });
 
@@ -676,6 +800,7 @@ function handleConfigUpdate(ws, clientId, payload) {
     return;
   }
   room.config = payload.config;
+  saveConfig();
   // Strip entryWeights from config before broadcasting (hidden from non-host)
   const sanitized = JSON.parse(JSON.stringify(room.config));
   for (const wc of Object.values(sanitized.wheels || {})) {
@@ -732,9 +857,6 @@ function handleSpinRequest(ws, clientId, payload) {
     initiator: clientId,
   };
   room.bettingOpen = true;
-
-  // Reset evolution decay - user is actively engaging with wheel
-  lastSpinTime = Date.now();
 
   const client = room.clients.get(clientId);
   const initiatorName = client ? client.name : 'Server';
@@ -916,24 +1038,34 @@ function handleBoost(ws, clientId, payload) {
   console.log(`[boost] ${client.name} boosted "${entry}" (idx ${entryIndex}) by +${addedWeight.toFixed(1)} weight for $${cost}`);
 }
 
-function revertBoosts() {
-  // Clear boosts from playerBoosts and notify each booster individually
-  for (const b of activeBoosts) {
-    if (playerBoosts[b.clientId] && playerBoosts[b.clientId][b.wheelId]) {
-      const wb = playerBoosts[b.clientId][b.wheelId];
-      if (wb[b.weightKey] != null) {
-        wb[b.weightKey] -= b.addedWeight;
-        if (Math.abs(wb[b.weightKey]) < 0.001) delete wb[b.weightKey];
+function decayBoosts() {
+  // Multiply all boost weights by ADDITIVE_DECAY, remove when negligible
+  for (const [clientId, wheels] of Object.entries(playerBoosts)) {
+    const decayed = {}; // track what changed for this client
+    for (const [wheelId, weights] of Object.entries(wheels)) {
+      for (const [key, value] of Object.entries(weights)) {
+        weights[key] = value * ADDITIVE_DECAY;
+        if (Math.abs(weights[key]) < 0.01) {
+          delete weights[key];
+        } else {
+          if (!decayed[wheelId]) decayed[wheelId] = {};
+          decayed[wheelId][key] = weights[key];
+        }
       }
-      if (Object.keys(wb).length === 0) delete playerBoosts[b.clientId][b.wheelId];
-      if (Object.keys(playerBoosts[b.clientId]).length === 0) delete playerBoosts[b.clientId];
+      if (Object.keys(weights).length === 0) delete wheels[wheelId];
     }
-    const client = room.clients.get(b.clientId);
+    if (Object.keys(wheels).length === 0) delete playerBoosts[clientId];
+    // Notify this client of decayed boost values
+    const client = room.clients.get(clientId);
     if (client && client.ws.readyState === 1) {
-      send(client.ws, { type: 'boost_reverted', payload: { wheelId: b.wheelId, weightKey: b.weightKey, amount: b.addedWeight } });
+      send(client.ws, { type: 'boosts_decayed', payload: { factor: ADDITIVE_DECAY, remaining: decayed } });
     }
   }
-  activeBoosts = [];
+  // Update activeBoosts to reflect decay — scale down addedWeight, remove expired
+  activeBoosts = activeBoosts.filter(b => {
+    b.addedWeight *= ADDITIVE_DECAY;
+    return b.addedWeight >= 0.01;
+  });
 }
 
 function executeSpinNow(wheelId, visitedChain, initiatorId) {
@@ -964,6 +1096,13 @@ function executeSpinNow(wheelId, visitedChain, initiatorId) {
   const minSpins = 6 + Math.floor((crypto.randomBytes(4).readUInt32BE(0) / 0xFFFFFFFF) * 5);
   const innerRand = crypto.randomBytes(4).readUInt32BE(0) / 0xFFFFFFFF; // same for all clients
 
+  // Compute base weights (shared config weights, no per-client boosts)
+  const ew = wc.entryWeights || {};
+  const baseWeights = entries.map((name, idx) => {
+    const base = ew[name] != null ? ew[name] : 1;
+    return Math.max(0.01, base);
+  });
+
   room.spinState = {
     spinning: true,
     wheelId,
@@ -974,6 +1113,9 @@ function executeSpinNow(wheelId, visitedChain, initiatorId) {
     predeterminedWinner: entries[winnerIndex],
     predeterminedWinnerIndex: winnerIndex,
     innerRand, // store for per-client angle calculation
+    entries,
+    baseWeights,
+    totalBoostOffset: 0,
   };
 
   // Track spin stat
@@ -1032,13 +1174,52 @@ function handleSpinComplete(ws, clientId, payload) {
   if (!room.spinState.spinning) return;
 
   const wheelId = room.spinState.wheelId;
-  // Use server-determined winner, NOT client-reported winner
-  const winner = room.spinState.predeterminedWinner;
-  const winnerIndex = room.spinState.predeterminedWinnerIndex;
+  // Start with server-predetermined winner
+  let winner = room.spinState.predeterminedWinner;
+  let winnerIndex = room.spinState.predeterminedWinnerIndex;
+
+  // If boost items were used mid-spin, recalculate winner from boosted angle
+  if (room.spinState.totalBoostOffset && room.spinState.baseWeights && room.spinState.entries) {
+    const entries = room.spinState.entries;
+    const bw = room.spinState.baseWeights;
+    const totalWeight = bw.reduce((a, b) => a + b, 0);
+    const TWO_PI = Math.PI * 2;
+
+    // Compute original target angle in base layout for the predetermined winner
+    let origSegStart = 0;
+    for (let i = 0; i < winnerIndex; i++) {
+      origSegStart += (bw[i] / totalWeight) * TWO_PI;
+    }
+    const origSegArc = (bw[winnerIndex] / totalWeight) * TWO_PI;
+    const padding = origSegArc * 0.1;
+    const origAngle = origSegStart + padding + room.spinState.innerRand * (origSegArc - 2 * padding);
+
+    // Apply boost offset (subtract: adding to wheel rotation moves pointer backwards in segment space)
+    let newAngle = (origAngle - room.spinState.totalBoostOffset) % TWO_PI;
+    if (newAngle < 0) newAngle += TWO_PI;
+
+    // Find which segment the boosted angle lands in
+    let cumAngle = 0;
+    let newWinnerIndex = entries.length - 1;
+    for (let i = 0; i < entries.length; i++) {
+      cumAngle += (bw[i] / totalWeight) * TWO_PI;
+      if (newAngle < cumAngle) { newWinnerIndex = i; break; }
+    }
+
+    if (newWinnerIndex !== winnerIndex) {
+      console.log(`[boost] Winner changed: "${entries[winnerIndex]}" → "${entries[newWinnerIndex]}" (boost ${room.spinState.totalBoostOffset.toFixed(3)} rad)`);
+      winnerIndex = newWinnerIndex;
+      winner = entries[newWinnerIndex];
+    }
+  }
+
   room.spinState.spinning = false;
 
-  // Reset evolution decay - real spin just happened
-  lastSpinTime = Date.now();
+  // Decrement robbery cooldowns
+  for (const [name, cd] of robberyCooldowns) {
+    if (cd <= 1) robberyCooldowns.delete(name);
+    else robberyCooldowns.set(name, cd - 1);
+  }
 
   // Apply fatigue: winner gets cooldown, others recover
   if (winnerIndex != null) {
@@ -1130,11 +1311,31 @@ function handleSpinComplete(ws, clientId, payload) {
 
   console.log(`[win] ${winner} on ${wheelId}${nextAction ? ` → ${nextAction.type}` : ''}`);
 
-  // Auto-launch sub-wheel spin after delay (skip ready-up for chains)
-  // Delay boost revert so the wheel doesn't visually shift while result is shown
+  // ── Stock development & momentum for winner ──
+  if (winner && stockPrices[winner]) {
+    stockPrices[winner].development += DEVELOPMENT_PER_WIN;
+    stockPrices[winner].momentum += SPIN_WIN_MOMENTUM;
+  }
+  // Opposite entry (across the wheel) takes a small development hit
+  if (room.config) {
+    const wc2 = room.config.wheels[wheelId];
+    if (wc2) {
+      const allEntries = (wc2.entries || '').split('\n').map(s => s.trim()).filter(Boolean);
+      if (allEntries.length >= 2 && winnerIndex != null) {
+        const oppositeIndex = (winnerIndex + Math.floor(allEntries.length / 2)) % allEntries.length;
+        const oppName = allEntries[oppositeIndex];
+        if (oppName !== winner && stockPrices[oppName]) {
+          stockPrices[oppName].development = Math.max(0.1, stockPrices[oppName].development - DEVELOPMENT_PER_WIN * 0.5);
+        }
+      }
+    }
+  }
+
+  // ── Decay boosts (multiply by 0.7 instead of removing) ──
+  // Delay so the wheel doesn't visually shift while result is shown
   if (nextAction && nextAction.type === 'subwheel') {
     setTimeout(() => {
-      revertBoosts();
+      decayBoosts();
       handleSpinRequest(null, room.hostId || 'server', {
         wheelId: nextAction.targetWheelId,
         visitedChain: nextAction.visitedChain,
@@ -1143,7 +1344,7 @@ function handleSpinComplete(ws, clientId, payload) {
     }, 2000);
   } else if (nextAction && nextAction.type === '__spin_again') {
     setTimeout(() => {
-      revertBoosts();
+      decayBoosts();
       handleSpinRequest(null, room.hostId || 'server', {
         wheelId: nextAction.wheelId,
         visitedChain: [],
@@ -1151,12 +1352,39 @@ function handleSpinComplete(ws, clientId, payload) {
       });
     }, 2000);
   } else {
-    // No chain — revert after a short delay so the result stays visually stable
-    setTimeout(() => revertBoosts(), 3000);
+    setTimeout(() => decayBoosts(), 3000);
   }
 
-  // Update stock market
-  updateStockPrices(wheelId, winner);
+  // ── Decrement event spinsRemaining, remove expired ──
+  for (let i = activeEvents.length - 1; i >= 0; i--) {
+    activeEvents[i].spinsRemaining--;
+    if (activeEvents[i].spinsRemaining <= 0) {
+      console.log(`[event] Expired: "${activeEvents[i].headline}"`);
+      activeEvents.splice(i, 1);
+    }
+  }
+
+  // ── Decrement analyst predictions, notify players ──
+  for (const [playerName, preds] of analystPredictions) {
+    for (const [stockName, pred] of preds) {
+      pred.spinsLeft--;
+      if (pred.spinsLeft <= 0) preds.delete(stockName);
+    }
+    // Send updated analyst data to this player
+    const clientEntry = [...room.clients.entries()].find(([, c]) => c.name === playerName);
+    if (clientEntry) {
+      const [, cl] = clientEntry;
+      if (cl.ws.readyState === 1) {
+        const remaining = {};
+        for (const [sn, p] of preds) {
+          const stock = stockPrices[sn];
+          if (stock) remaining[sn] = { estimatedValue: Math.round(stock.realValue * p.errorMultiplier * 100) / 100, spinsLeft: p.spinsLeft };
+        }
+        send(cl.ws, { type: 'analyst_update', payload: remaining });
+      }
+    }
+    if (preds.size === 0) analystPredictions.delete(playerName);
+  }
 }
 
 function handlePointsAdjust(ws, clientId, payload) {
@@ -1233,6 +1461,487 @@ function handleShopPurchase(ws, clientId, payload) {
   broadcastPlayerList();
 }
 
+function handleAnalystPurchase(ws, clientId, payload) {
+  const client = room.clients.get(clientId);
+  if (!client) return;
+  const player = room.players.get(client.name);
+  if (!player) return;
+
+  if (!room.config || !room.config.shop) {
+    send(ws, { type: 'error', payload: { message: 'No shop configured' } });
+    return;
+  }
+
+  const item = room.config.shop[payload.itemIndex];
+  if (!item || item.action !== 'analyst') {
+    send(ws, { type: 'error', payload: { message: 'Invalid analyst item' } });
+    return;
+  }
+
+  const stockName = payload.stockName;
+  if (!stockName || !stockPrices[stockName]) {
+    send(ws, { type: 'error', payload: { message: 'Invalid stock' } });
+    return;
+  }
+
+  if (player.points < item.cost) {
+    send(ws, { type: 'error', payload: { message: 'Not enough funds' } });
+    return;
+  }
+
+  player.points -= item.cost;
+
+  // Generate error multiplier: ±5% (0.95 to 1.05)
+  const errorMultiplier = 1 + (Math.random() * 0.10 - 0.05);
+
+  // Store prediction
+  if (!analystPredictions.has(client.name)) analystPredictions.set(client.name, new Map());
+  analystPredictions.get(client.name).set(stockName, { spinsLeft: 5, errorMultiplier });
+
+  const stock = stockPrices[stockName];
+  const estimatedValue = Math.round(stock.realValue * errorMultiplier * 100) / 100;
+
+  // Notify buyer only
+  send(ws, { type: 'analyst_activated', payload: { stockName, estimatedValue, spinsLeft: 5 } });
+
+  // Broadcast purchase for toast/sound
+  broadcast({
+    type: 'shop_purchased',
+    payload: { buyerName: client.name, item, itemIndex: payload.itemIndex },
+  });
+
+  savePlayers();
+  broadcastPlayerList();
+  console.log(`[analyst] ${client.name} bought analyst prediction for "${stockName}" (est: $${estimatedValue}, real: $${stock.realValue})`);
+}
+
+function handleUpgradePurchase(ws, clientId, payload) {
+  const client = room.clients.get(clientId);
+  if (!client) return;
+  const player = room.players.get(client.name);
+  if (!player) return;
+  if (!player.upgrades) player.upgrades = {};
+
+  const { upgradeId } = payload;
+  const def = UPGRADE_DEFS[upgradeId];
+  if (!def) {
+    send(ws, { type: 'error', payload: { message: 'Unknown upgrade' } });
+    return;
+  }
+
+  const currentLevel = player.upgrades[upgradeId] || 0;
+  if (currentLevel >= def.maxLevel) {
+    send(ws, { type: 'error', payload: { message: 'Upgrade already at max level' } });
+    return;
+  }
+
+  const cost = def.costFormula(currentLevel);
+  if (player.points < cost) {
+    send(ws, { type: 'error', payload: { message: 'Not enough funds' } });
+    return;
+  }
+
+  player.points -= cost;
+  player.upgrades[upgradeId] = currentLevel + 1;
+  savePlayers();
+
+  console.log(`[upgrade] ${client.name} upgraded "${def.name}" to level ${currentLevel + 1} for $${cost}`);
+
+  broadcast({
+    type: 'upgrade_purchased',
+    payload: { buyerName: client.name, upgradeId, newLevel: currentLevel + 1, cost },
+  });
+  broadcastPlayerList();
+}
+
+const activeRobberies = new Map(); // robberyId -> robbery state
+let nextRobberyId = 1;
+const WORDLE_DURATION_MS = 60000; // 60 seconds for victim to guess
+const WORDLE_MAX_GUESSES = 6;
+
+function getRequiredWordLength(attackLevel, defenseLevel) {
+  const levelDiff = attackLevel - defenseLevel;
+  if (levelDiff < 0) return { exact: 3 };
+  if (levelDiff === 0) return { exact: 4 };
+  const calcLen = 4 + levelDiff;
+  if (calcLen >= 8) return { minLength: 8 };
+  return { exact: calcLen };
+}
+
+function isValidWordLength(word, attackLevel, defenseLevel) {
+  const req = getRequiredWordLength(attackLevel, defenseLevel);
+  if (req.exact) return word.length === req.exact;
+  if (req.minLength) return word.length >= req.minLength;
+  return false;
+}
+
+function computeWordleFeedback(guess, secret) {
+  const feedback = new Array(guess.length).fill('absent');
+  const secretLetters = secret.split('');
+  const used = new Array(secret.length).fill(false);
+  // First pass: correct (green)
+  for (let i = 0; i < guess.length; i++) {
+    if (guess[i] === secretLetters[i]) {
+      feedback[i] = 'correct';
+      used[i] = true;
+    }
+  }
+  // Second pass: present (yellow)
+  for (let i = 0; i < guess.length; i++) {
+    if (feedback[i] === 'correct') continue;
+    for (let j = 0; j < secretLetters.length; j++) {
+      if (!used[j] && guess[i] === secretLetters[j]) {
+        feedback[i] = 'present';
+        used[j] = true;
+        break;
+      }
+    }
+  }
+  return feedback;
+}
+
+function handleRobbery(ws, clientId, payload) {
+  const client = room.clients.get(clientId);
+  if (!client) return;
+  const attacker = room.players.get(client.name);
+  if (!attacker) return;
+  if (!attacker.upgrades) attacker.upgrades = {};
+
+  const { targetName, word } = payload;
+  if (targetName === client.name) {
+    send(ws, { type: 'error', payload: { message: "You can't rob yourself" } });
+    return;
+  }
+
+  const victim = room.players.get(targetName);
+  if (!victim) {
+    send(ws, { type: 'error', payload: { message: 'Player not found' } });
+    return;
+  }
+
+  const attackLevel = attacker.upgrades.criminal_org || 0;
+  if (attackLevel < 1) {
+    send(ws, { type: 'error', payload: { message: 'You need Criminal Organization level 1+' } });
+    return;
+  }
+
+  // Validate word
+  if (!word || typeof word !== 'string') {
+    send(ws, { type: 'error', payload: { message: 'You must select a word' } });
+    return;
+  }
+  const normalizedWord = word.toLowerCase().trim();
+  if (!WORD_SET.has(normalizedWord)) {
+    send(ws, { type: 'error', payload: { message: 'Invalid word' } });
+    return;
+  }
+  const defenseLevel = victim.upgrades ? (victim.upgrades.bodyguards || 0) : 0;
+  if (!isValidWordLength(normalizedWord, attackLevel, defenseLevel)) {
+    send(ws, { type: 'error', payload: { message: 'Word length does not match level requirements' } });
+    return;
+  }
+
+  // Check cooldown
+  const cd = robberyCooldowns.get(client.name) || 0;
+  if (cd > 0) {
+    send(ws, { type: 'robbery_result', payload: { success: false, reason: 'cooldown', spinsLeft: cd } });
+    return;
+  }
+
+  // Check if already has an active robbery
+  for (const [, r] of activeRobberies) {
+    if (r.attackerName === client.name) {
+      send(ws, { type: 'error', payload: { message: 'You already have a robbery in progress' } });
+      return;
+    }
+  }
+
+  // Start cooldown immediately
+  robberyCooldowns.set(client.name, ROBBERY_COOLDOWN_SPINS);
+
+  const robberyId = nextRobberyId++;
+  const victimOnline = !!victim.connected;
+
+  // If victim is offline, resolve immediately with random chance
+  if (!victimOnline) {
+    const levelDiff = attackLevel - defenseLevel;
+    const successChance = Math.min(0.90, Math.max(0.10, 0.50 + levelDiff * 0.08));
+    const roll = Math.random();
+
+    console.log(`[robbery] ${client.name} (Lv${attackLevel}) robbing offline ${targetName} (Def${defenseLevel}) — roll ${roll.toFixed(2)} vs ${successChance.toFixed(2)}`);
+
+    if (roll > successChance) {
+      broadcast({
+        type: 'robbery_result',
+        payload: { robberyId, success: false, reason: 'defended', attackerName: client.name, targetName, attackLevel, defenseLevel, word: normalizedWord },
+      });
+      return;
+    }
+
+    // Offline success — use loot calculation
+    resolveRobberyLoot(robberyId, client.name, targetName, attackLevel, defenseLevel, normalizedWord);
+    return;
+  }
+
+  // Victim is online — start Wordle
+  const resolveAt = Date.now() + WORDLE_DURATION_MS;
+  const robbery = {
+    id: robberyId,
+    attackerName: client.name,
+    targetName,
+    attackLevel,
+    defenseLevel,
+    word: normalizedWord,
+    wordLength: normalizedWord.length,
+    startedAt: Date.now(),
+    resolveAt,
+    guesses: [],
+    maxGuesses: WORDLE_MAX_GUESSES,
+    victimOnline: true,
+    timerId: null,
+  };
+  activeRobberies.set(robberyId, robbery);
+
+  console.log(`[robbery] ${client.name} (Lv${attackLevel}) started Wordle robbery on ${targetName} (Def${defenseLevel}) — word "${normalizedWord}" (${normalizedWord.length} letters), 60s timer`);
+
+  broadcast({
+    type: 'robbery_started',
+    payload: {
+      robberyId,
+      attackerName: client.name,
+      targetName,
+      attackLevel,
+      defenseLevel,
+      wordLength: normalizedWord.length,
+      durationMs: WORDLE_DURATION_MS,
+      maxGuesses: WORDLE_MAX_GUESSES,
+      victimOnline: true,
+    },
+  });
+
+  robbery.timerId = setTimeout(() => resolveRobberyTimeout(robberyId), WORDLE_DURATION_MS);
+}
+
+function handleRobberyGuess(ws, clientId, payload) {
+  const client = room.clients.get(clientId);
+  if (!client) return;
+
+  const { robberyId, guess } = payload;
+  const robbery = activeRobberies.get(robberyId);
+  if (!robbery) {
+    send(ws, { type: 'error', payload: { message: 'Robbery not found or already resolved' } });
+    return;
+  }
+
+  if (client.name !== robbery.targetName) {
+    send(ws, { type: 'error', payload: { message: 'Only the target can guess' } });
+    return;
+  }
+
+  if (robbery.guesses.length >= robbery.maxGuesses) {
+    send(ws, { type: 'error', payload: { message: 'No guesses remaining' } });
+    return;
+  }
+
+  const normalizedGuess = guess.toLowerCase().trim();
+  if (!WORD_SET.has(normalizedGuess)) {
+    send(ws, { type: 'robbery_guess_result', payload: { robberyId, valid: false, message: 'Not a valid word' } });
+    return;
+  }
+  if (normalizedGuess.length !== robbery.wordLength) {
+    send(ws, { type: 'robbery_guess_result', payload: { robberyId, valid: false, message: `Word must be ${robbery.wordLength} letters` } });
+    return;
+  }
+
+  const feedback = computeWordleFeedback(normalizedGuess, robbery.word);
+  const guessNum = robbery.guesses.length + 1;
+  const correct = normalizedGuess === robbery.word;
+
+  robbery.guesses.push({ guess: normalizedGuess, feedback, guessNum });
+
+  broadcast({
+    type: 'robbery_guess_result',
+    payload: {
+      robberyId,
+      valid: true,
+      guess: normalizedGuess,
+      feedback,
+      guessNum,
+      maxGuesses: robbery.maxGuesses,
+      correct,
+    },
+  });
+
+  if (correct) {
+    // Victim guessed correctly — robbery fails
+    clearTimeout(robbery.timerId);
+    activeRobberies.delete(robberyId);
+    console.log(`[robbery] ${robbery.targetName} defended against ${robbery.attackerName} by guessing "${normalizedGuess}" on guess ${guessNum}`);
+    broadcast({
+      type: 'robbery_result',
+      payload: {
+        robberyId,
+        success: false,
+        reason: 'defended',
+        attackerName: robbery.attackerName,
+        targetName: robbery.targetName,
+        attackLevel: robbery.attackLevel,
+        defenseLevel: robbery.defenseLevel,
+        word: robbery.word,
+      },
+    });
+  } else if (guessNum >= robbery.maxGuesses) {
+    // All guesses used — robbery succeeds
+    clearTimeout(robbery.timerId);
+    resolveRobberySuccess(robberyId);
+  }
+}
+
+function resolveRobberyTimeout(robberyId) {
+  const robbery = activeRobberies.get(robberyId);
+  if (!robbery) return;
+  console.log(`[robbery] Timer expired for robbery ${robberyId} — ${robbery.attackerName} vs ${robbery.targetName}`);
+  resolveRobberySuccess(robberyId);
+}
+
+function resolveRobberySuccess(robberyId) {
+  const robbery = activeRobberies.get(robberyId);
+  if (!robbery) return;
+  activeRobberies.delete(robberyId);
+
+  const attacker = room.players.get(robbery.attackerName);
+  const victim = room.players.get(robbery.targetName);
+  if (!attacker || !victim) {
+    broadcast({ type: 'robbery_result', payload: { robberyId, success: false, reason: 'player_gone', attackerName: robbery.attackerName, targetName: robbery.targetName, word: robbery.word } });
+    return;
+  }
+
+  resolveRobberyLoot(robberyId, robbery.attackerName, robbery.targetName, robbery.attackLevel, robbery.defenseLevel, robbery.word);
+}
+
+function resolveRobberyLoot(robberyId, attackerName, targetName, attackLevel, defenseLevel, word) {
+  const attacker = room.players.get(attackerName);
+  const victim = room.players.get(targetName);
+  if (!attacker || !victim) {
+    broadcast({ type: 'robbery_result', payload: { robberyId, success: false, reason: 'player_gone', attackerName, targetName, word } });
+    return;
+  }
+
+  const levelDiff = attackLevel - defenseLevel;
+
+  // Calculate victim's total assets
+  if (!victim.portfolio) victim.portfolio = {};
+  if (!victim.costBasis) victim.costBasis = {};
+  let portfolioValue = 0;
+  const victimStocks = {};
+  for (const [stockName, shares] of Object.entries(victim.portfolio)) {
+    if (shares <= 0) continue;
+    const stock = stockPrices[stockName];
+    if (!stock) continue;
+    const val = shares * stock.price;
+    portfolioValue += val;
+    victimStocks[stockName] = { shares, price: stock.price, value: val };
+  }
+  const totalAssets = victim.points + portfolioValue;
+
+  if (totalAssets <= 0) {
+    broadcast({
+      type: 'robbery_result',
+      payload: { robberyId, success: false, reason: 'broke', attackerName, targetName, word },
+    });
+    return;
+  }
+
+  // Loot amount: scale with level diff, randomized
+  const lootFraction = Math.min(0.90, Math.max(0.10, 0.30 + levelDiff * 0.05));
+  const percentCap = ROBBERY_MAX_PERCENT * totalAssets;
+  const maxLoot = Math.max(percentCap, ROBBERY_MAX_FLAT);
+  const rawLoot = Math.round((0.3 + Math.random() * 0.7) * lootFraction * maxLoot);
+  const actualLoot = Math.min(rawLoot, totalAssets);
+
+  // Distribute theft across cash and stocks proportionally
+  let cashStolen = 0;
+  const stocksStolen = {};
+
+  if (totalAssets > 0) {
+    const cashRatio = victim.points / totalAssets;
+    cashStolen = Math.min(victim.points, Math.round(actualLoot * cashRatio));
+    let remaining = actualLoot - cashStolen;
+
+    // Steal stocks randomly (shuffle)
+    const stockEntries = Object.entries(victimStocks);
+    for (let i = stockEntries.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [stockEntries[i], stockEntries[j]] = [stockEntries[j], stockEntries[i]];
+    }
+    for (const [stockName, info] of stockEntries) {
+      if (remaining <= 0) break;
+      const stealValue = Math.min(remaining, info.value);
+      const sharesToSteal = Math.max(1, Math.floor(stealValue / info.price));
+      const actualShares = Math.min(sharesToSteal, info.shares);
+      if (actualShares <= 0) continue;
+
+      stocksStolen[stockName] = actualShares;
+      victim.portfolio[stockName] -= actualShares;
+      if (victim.portfolio[stockName] <= 0) delete victim.portfolio[stockName];
+
+      // Transfer to attacker
+      if (!attacker.portfolio) attacker.portfolio = {};
+      attacker.portfolio[stockName] = (attacker.portfolio[stockName] || 0) + actualShares;
+
+      // Update cost basis
+      if (victim.costBasis[stockName]) {
+        const vb = victim.costBasis[stockName];
+        const avgCost = vb.shares > 0 ? vb.totalCost / vb.shares : info.price;
+        vb.totalCost -= avgCost * actualShares;
+        vb.shares -= actualShares;
+        if (vb.shares <= 0) delete victim.costBasis[stockName];
+      }
+      if (!attacker.costBasis) attacker.costBasis = {};
+      if (!attacker.costBasis[stockName]) attacker.costBasis[stockName] = { totalCost: 0, shares: 0 };
+      attacker.costBasis[stockName].totalCost += info.price * actualShares;
+      attacker.costBasis[stockName].shares += actualShares;
+
+      remaining -= actualShares * info.price;
+    }
+
+    // If we couldn't steal enough stocks, take more cash
+    if (remaining > 0) {
+      const extraCash = Math.min(victim.points - cashStolen, Math.round(remaining));
+      cashStolen += extraCash;
+    }
+  }
+
+  // Transfer cash
+  victim.points -= cashStolen;
+  attacker.points += cashStolen;
+  savePlayers();
+
+  const totalStolen = cashStolen + Object.entries(stocksStolen).reduce((sum, [name, shares]) => {
+    const stock = stockPrices[name];
+    return sum + (stock ? shares * stock.price : 0);
+  }, 0);
+
+  console.log(`[robbery] ${attackerName} (Lv${attackLevel}) robbed ${targetName} (Def${defenseLevel}) for $${Math.round(totalStolen)} (cash: $${cashStolen}, stocks: ${JSON.stringify(stocksStolen)})`);
+
+  broadcast({
+    type: 'robbery_result',
+    payload: {
+      robberyId,
+      success: true,
+      attackerName,
+      targetName,
+      attackLevel,
+      defenseLevel,
+      cashStolen,
+      stocksStolen,
+      totalStolen: Math.round(totalStolen),
+      word,
+    },
+  });
+  broadcastPlayerList();
+}
+
 function handleUseItem(ws, clientId, payload) {
   const client = room.clients.get(clientId);
   if (!client) return;
@@ -1261,6 +1970,21 @@ function handleUseItem(ws, clientId, payload) {
 
     // Generate a small random boost (extra rotation)
     const boostAmount = 0.3 + (crypto.randomBytes(4).readUInt32BE(0) / 0xFFFFFFFF) * 0.5; // 0.3 to 0.8 radians
+
+    // Accumulate scaled boost offset (same scaling as client's applyWheelBoost)
+    if (room.spinState.entries && room.spinState.baseWeights) {
+      const bw = room.spinState.baseWeights;
+      const numEntries = bw.length;
+      if (numEntries > 0) {
+        const totalWeight = bw.reduce((a, b) => a + b, 0);
+        const avgWeight = totalWeight / numEntries;
+        const scaleFactor = 1 / Math.max(0.1, avgWeight);
+        room.spinState.totalBoostOffset += boostAmount * scaleFactor;
+      } else {
+        room.spinState.totalBoostOffset += boostAmount;
+      }
+      console.log(`[boost] Accumulated boost offset: ${room.spinState.totalBoostOffset.toFixed(3)} rad`);
+    }
 
     broadcast({
       type: 'item_used',
@@ -1366,8 +2090,8 @@ function processOrders() {
       player.costBasis[order.entryName].totalCost += totalCost;
       player.costBasis[order.entryName].shares += fillAmount;
 
-      // Apply price impact
-      const impact = applyTradeImpact(order.entryName, fillAmount, true);
+      // Apply momentum from trade
+      stock.momentum += PLAYER_TRADE_MOMENTUM * Math.sqrt(fillAmount);
 
       console.log(`[order] ${order.playerName} buy fill: ${fillAmount}x ${order.entryName} @ $${costPerShare.toFixed(2)} (liq: ${liquidity.sellVolume.toFixed(0)} left)`);
       anyProcessed = true;
@@ -1418,8 +2142,8 @@ function processOrders() {
       order.filledShares += fillAmount;
       order.fills.push({ shares: fillAmount, price: pricePerShare, timestamp: Date.now() });
 
-      // Apply price impact
-      const impact = applyTradeImpact(order.entryName, fillAmount, false);
+      // Apply momentum from trade
+      stock.momentum -= PLAYER_TRADE_MOMENTUM * Math.sqrt(fillAmount);
 
       console.log(`[order] ${order.playerName} sell fill: ${fillAmount}x ${order.entryName} @ $${pricePerShare.toFixed(2)} (liq: ${liquidity.buyVolume.toFixed(0)} left)`);
       anyProcessed = true;
@@ -1703,7 +2427,11 @@ wss.on('connection', (ws) => {
       case 'boost': handleBoost(ws, clientId, msg.payload || {}); break;
       case 'points_adjust': handlePointsAdjust(ws, clientId, msg.payload || {}); break;
       case 'shop_purchase': handleShopPurchase(ws, clientId, msg.payload || {}); break;
+      case 'analyst_purchase': handleAnalystPurchase(ws, clientId, msg.payload || {}); break;
       case 'use_item': handleUseItem(ws, clientId, msg.payload || {}); break;
+      case 'upgrade_purchase': handleUpgradePurchase(ws, clientId, msg.payload || {}); break;
+      case 'robbery': handleRobbery(ws, clientId, msg.payload || {}); break;
+      case 'robbery_guess': handleRobberyGuess(ws, clientId, msg.payload || {}); break;
       case 'buy_stock': handleBuyStock(ws, clientId, msg.payload || {}); break;
       case 'sell_stock': handleSellStock(ws, clientId, msg.payload || {}); break;
       case 'cancel_order': handleCancelOrder(ws, clientId, msg.payload || {}); break;

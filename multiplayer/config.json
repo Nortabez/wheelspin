@@ -1,0 +1,164 @@
+{
+  "activeWheelId": "wheel_main",
+  "wheels": {
+    "wheel_main": {
+      "title": "Main Wheel",
+      "entries": "Add a game\nBloon's Multiplayer\nDark Pictures\nDota\nDota Custom Game\nDrink\nHearthstone\nHeathstone\nLegionTD\nLuke's Choice\nMechabellum\nMinecraft Minigame\nMinecraft Mod\nSharp's Choice\nSpin Again\nStarcraft\nStarcraft Custom\nVintage Story\nZeeb's Choice\nAdd a game\nRemove a game\nRoguelike",
+      "sounds": {
+        "Dota": "dotahorn.mp3",
+        "Hearthstone": "hearthstonebrotherhood.mp3",
+        "Heathstone": "hearthstonebrotherhood.mp3",
+        "Starcraft": "Alert_ZergNewQueen.mp3"
+      },
+      "volumes": {},
+      "defaultSound": "",
+      "defaultVolume": 100,
+      "defaultFontSize": 18,
+      "fontSizes": {},
+      "triggers": {
+        "Add a game": "__add_entry",
+        "Remove a game": "__remove_entry",
+        "Spin Again": "__spin_again",
+        "Luke's Choice": "wheel_1770239619306",
+        "Sharp's Choice": "wheel_1770239619306",
+        "Zeeb's Choice": "wheel_1770239619306",
+        "Roguelike": "wheel_1770240154266"
+      },
+      "entryWeights": {},
+      "defaultTrigger": ""
+    },
+    "wheel_1770239619306": {
+      "title": "ChoiceTime",
+      "entries": "1 MINUTE\n30 SECONDS\n2 MINUTES\n5 MINUTES",
+      "sounds": {
+        "30 SECONDS": "slot_win_2.wav"
+      },
+      "volumes": {},
+      "defaultSound": "cute_happy_victory-476376.mp3",
+      "defaultVolume": 100,
+      "defaultFontSize": 18,
+      "fontSizes": {},
+      "triggers": {},
+      "entryWeights": {},
+      "defaultTrigger": ""
+    },
+    "wheel_1770240056618": {
+      "title": "Free Content",
+      "entries": "Smiling Friends\nRemove Content + Choose\nFuturama\nBluey\nAdd Content + Choose\n",
+      "sounds": {},
+      "volumes": {
+        "Remove Content + Choose": 100
+      },
+      "defaultSound": "",
+      "defaultVolume": 100,
+      "defaultFontSize": 18,
+      "fontSizes": {
+        "Remove Content + Choose": 13
+      },
+      "triggers": {
+        "Remove Content + Choose": "wheel_1770240848019",
+        "Add Content + Choose": "wheel_1770240848019"
+      },
+      "entryWeights": {},
+      "defaultTrigger": ""
+    },
+    "wheel_1770240154266": {
+      "title": "Roguelike Selector",
+      "entries": "Hades 2\nRisk of Rain 2\nPeglin\nStarvaders\nTower Dominion\nUnrailed 2\nDome Keeper\nSephiria\nCoal LLC\nDrop Duchy\nHe Is Coming\nSkewer Squad\nMycopunk\nTurnbound\nDecktamer\nLast Castle 2\nNoobs Are Coming\nDogpile\nTower Factory\nOut of Time\nNoita\nWall World 2\nAstraya\nRattopia\n",
+      "sounds": {},
+      "volumes": {},
+      "defaultSound": "",
+      "defaultVolume": 100,
+      "defaultFontSize": 18,
+      "fontSizes": {},
+      "triggers": {},
+      "entryWeights": {},
+      "defaultTrigger": "wheel_1770240848019"
+    },
+    "wheel_1770240848019": {
+      "title": "PersonChooser",
+      "entries": "Zeeb\nLuke",
+      "sounds": {},
+      "volumes": {},
+      "defaultSound": "cute_happy_victory-476376.mp3",
+      "defaultVolume": 100,
+      "defaultFontSize": 18,
+      "fontSizes": {},
+      "triggers": {},
+      "defaultTrigger": "",
+      "entryWeights": {}
+    }
+  },
+  "shop": [
+    {
+      "name": "Wheel Flicker",
+      "cost": 15,
+      "action": "inventory",
+      "id": "shop_1770232009077",
+      "sound": "purchase_sound.mp3",
+      "itemType": "boost"
+    },
+    {
+      "name": "Market Anaylst Prediction",
+      "cost": 30,
+      "action": "analyst",
+      "id": "shop_1770515456111",
+      "sound": "word_success.mp3"
+    }
+  ],
+  "worldEvents": [
+    {
+      "headline": "COUNTERFEIT CARD RING OPERATING IN US",
+      "sentiment": -1,
+      "affects": [
+        "Hearthstone",
+        "Heathstone"
+      ],
+      "strength": 2
+    },
+    {
+      "headline": "SKYLINE CAMERAS FACING A BAN IN NEW GOVT REGULATIONS",
+      "sentiment": -1,
+      "affects": [
+        "Bloon's Multiplayer",
+        "Dota",
+        "Dota Custom Game",
+        "LegionTD",
+        "Mechabellum",
+        "Starcraft",
+        "Starcraft Custom"
+      ],
+      "strength": 2
+    },
+    {
+      "headline": "INTEREST RATES RAPIDLY RISING WITH NEW FED CHAIR",
+      "sentiment": -1,
+      "affects": "all",
+      "strength": 2.5
+    },
+    {
+      "headline": "JIMMY DECIDES TO BUY ALL THE STOCKS",
+      "sentiment": 1,
+      "affects": "all",
+      "strength": 3
+    },
+    {
+      "headline": "JIMMY ACCIDENTALLY SPILLS HIS DRINK ON HIS COMPUTER",
+      "sentiment": -1,
+      "affects": [
+        "Drink"
+      ],
+      "strength": 2.5
+    },
+    {
+      "headline": "WAR STARTS BETWEEN MULTIPLE KINGDOMS",
+      "sentiment": -1,
+      "affects": [
+        "Luke's Choice",
+        "Sharp's Choice",
+        "Zeeb's Choice"
+      ],
+      "strength": 1.5
+    }
+  ]
+}

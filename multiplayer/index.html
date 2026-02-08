@@ -243,6 +243,7 @@
   .stock-change.up { color:#47B04B;background:rgba(71,176,75,0.15); }
   .stock-change.down { color:#E74856;background:rgba(231,72,86,0.15); }
   .stock-change.flat { color:var(--text-muted); }
+  .stock-value-badge { font-size:0.6rem;font-weight:700;letter-spacing:0.5px;padding:1px 4px;border-radius:3px;background:rgba(255,255,255,0.06);white-space:nowrap; }
   .stock-trade { display:flex;gap:6px;align-items:center; }
   .stock-trade input { width:50px;padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:var(--bg);color:var(--text);font-family:inherit;font-size:0.8rem;text-align:center; }
   .stock-trade button { padding:4px 10px;border-radius:6px;border:none;font-family:inherit;font-weight:700;font-size:0.75rem;cursor:pointer; }
@@ -340,7 +341,7 @@
     overflow: hidden;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   }
-  .popup.wide { width: 1100px; max-height: 90vh; }
+  .popup.wide { width: 1300px; max-height: 85vh; }
 
   .popup-header {
     display: flex;
@@ -743,22 +744,15 @@
     background: linear-gradient(135deg, #e94560, #f5a623);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   }
-  .conn-tabs { display: flex; gap: 0; margin-bottom: 16px; border-radius: 8px; overflow: hidden; }
-  .conn-tabs button {
-    flex: 1; padding: 10px; border: none; cursor: pointer;
-    background: var(--surface2); color: var(--text-muted);
-    font-family: inherit; font-weight: 600; font-size: 0.9rem;
-    transition: background 0.2s, color 0.2s;
-  }
-  .conn-tabs button.active { background: var(--accent); color: #fff; }
   .conn-form { display: none; flex-direction: column; gap: 12px; }
   .conn-form.active { display: flex; }
-  .conn-form input {
+  .conn-form input, .conn-form select {
     padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
     background: var(--bg); color: var(--text); font-family: inherit; font-size: 0.95rem;
     outline: none;
   }
-  .conn-form input:focus { border-color: var(--accent); }
+  .conn-form input:focus, .conn-form select:focus { border-color: var(--accent); }
+  .conn-form select option { background: var(--bg); color: var(--text); }
   .conn-form button.conn-submit {
     padding: 12px; border-radius: 8px; border: none;
     background: var(--accent); color: #fff; font-family: inherit;
@@ -1005,6 +999,208 @@
     font-size: 0.7rem; font-weight: 700;
   }
 
+  /* ── Upgrade cards ── */
+  .upgrade-cards { display:flex; flex-direction:column; gap:10px; padding:4px 0; }
+  .upgrade-card {
+    display:flex; align-items:center; gap:14px;
+    padding:14px 16px; border-radius:12px;
+    border:1px solid rgba(255,255,255,0.08);
+    background:var(--surface2); transition:border-color 0.2s;
+  }
+  .upgrade-card:hover { border-color:rgba(255,255,255,0.15); }
+  .upgrade-icon {
+    width:44px; height:44px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.4rem; flex-shrink:0;
+  }
+  .upgrade-info { flex:1; min-width:0; }
+  .upgrade-name { font-weight:700; font-size:0.95rem; color:var(--text); }
+  .upgrade-level { font-size:0.75rem; color:var(--text-muted); margin-top:2px; }
+  .upgrade-effect { font-size:0.75rem; color:#F5A623; margin-top:4px; }
+  .upgrade-buy-btn {
+    padding:8px 16px; border-radius:8px; border:none;
+    background:#47B04B; color:#fff; font-family:inherit;
+    font-weight:700; font-size:0.85rem; cursor:pointer;
+    white-space:nowrap; transition:background 0.2s,opacity 0.2s; flex-shrink:0;
+  }
+  .upgrade-buy-btn:hover { background:#3a9a3f; }
+  .upgrade-buy-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .upgrade-maxed {
+    padding:8px 16px; font-size:0.8rem; color:var(--text-muted);
+    font-weight:600; white-space:nowrap;
+  }
+  .robbery-section {
+    margin-top:16px; padding-top:16px;
+    border-top:1px solid rgba(255,255,255,0.08);
+  }
+  .robbery-section-title {
+    font-weight:700; font-size:0.9rem; color:var(--text); margin-bottom:10px;
+  }
+  .robbery-controls {
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  }
+  .robbery-controls select {
+    flex:1; min-width:120px; padding:8px 10px; border-radius:8px;
+    border:1px solid rgba(255,255,255,0.12); background:var(--surface2);
+    color:var(--text); font-family:inherit; font-size:0.85rem;
+  }
+  .robbery-controls select:focus { outline:none; border-color:rgba(255,255,255,0.3); }
+  .rob-btn {
+    padding:8px 18px; border-radius:8px; border:none;
+    background:#c0392b; color:#fff; font-family:inherit;
+    font-weight:700; font-size:0.85rem; cursor:pointer;
+    white-space:nowrap; transition:background 0.2s,opacity 0.2s;
+  }
+  .rob-btn:hover { background:#a93226; }
+  .rob-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .robbery-cooldown-text {
+    font-size:0.75rem; color:var(--text-muted); margin-top:6px;
+  }
+  .active-robberies { margin-top:12px; display:flex; flex-direction:column; gap:6px; }
+  .robbery-item {
+    display:flex; align-items:center; gap:10px;
+    padding:10px 14px; border-radius:10px;
+    background:rgba(192,57,43,0.15); border:1px solid rgba(192,57,43,0.3);
+  }
+  .robbery-item.defending {
+    background:rgba(231,76,60,0.18); border-color:rgba(231,76,60,0.4);
+  }
+  .robbery-timer {
+    font-size:1.3rem; font-weight:700; color:#e74c3c;
+    min-width:36px; text-align:center;
+  }
+  .robbery-detail { flex:1; min-width:0; }
+  .robbery-detail-title { font-size:0.85rem; font-weight:600; color:var(--text); }
+  .robbery-detail-sub { font-size:0.72rem; color:var(--text-muted); margin-top:2px; }
+  .robbery-progress {
+    height:4px; border-radius:2px; background:rgba(255,255,255,0.08);
+    margin-top:6px; overflow:hidden;
+  }
+  .robbery-progress-bar {
+    height:100%; border-radius:2px; background:#e74c3c;
+    transition:width 0.5s linear;
+  }
+
+  /* Word selection panel (attacker) */
+  .word-select-panel {
+    margin-top:12px; padding:12px; border-radius:10px;
+    background:rgba(192,57,43,0.1); border:1px solid rgba(192,57,43,0.25);
+  }
+  .word-select-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .word-select-header span { font-size:0.85rem; font-weight:600; color:var(--text); }
+  .word-select-cancel { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem; padding:2px 6px; }
+  .word-select-cancel:hover { color:var(--text); }
+  .word-length-info { font-size:0.75rem; color:#F5A623; margin-bottom:8px; }
+  .word-search-input {
+    width:100%; box-sizing:border-box; padding:8px 10px; border-radius:8px;
+    border:1px solid rgba(255,255,255,0.12); background:var(--surface2);
+    color:var(--text); font-family:inherit; font-size:0.85rem; margin-bottom:6px;
+  }
+  .word-search-input:focus { outline:none; border-color:rgba(255,255,255,0.3); }
+  .word-list-scroll {
+    max-height:180px; overflow-y:auto; display:flex; flex-wrap:wrap; gap:4px;
+    padding:4px 0;
+  }
+  .word-list-scroll::-webkit-scrollbar { width:5px; }
+  .word-list-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:3px; }
+  .word-option {
+    padding:5px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);
+    background:var(--surface2); color:var(--text); font-family:monospace;
+    font-size:0.8rem; cursor:pointer; transition:all 0.15s;
+  }
+  .word-option:hover { border-color:rgba(255,255,255,0.3); background:rgba(255,255,255,0.08); }
+  .word-option.selected { border-color:#c0392b; background:rgba(192,57,43,0.25); color:#fff; }
+  .word-confirm-btn {
+    margin-top:8px; width:100%; padding:10px; border-radius:8px; border:none;
+    background:#c0392b; color:#fff; font-family:inherit; font-weight:700;
+    font-size:0.9rem; cursor:pointer; transition:background 0.2s,opacity 0.2s;
+  }
+  .word-confirm-btn:hover { background:#a93226; }
+  .word-confirm-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  /* Wordle overlay (victim defense) */
+  .wordle-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:300;
+    display:none; align-items:center; justify-content:center; flex-direction:column;
+    gap:16px; padding:20px;
+  }
+  .wordle-overlay.show { display:flex; }
+  .wordle-title { font-size:1.1rem; font-weight:700; color:#e74c3c; text-align:center; max-width:400px; }
+  .wordle-timer { font-size:2.2rem; font-weight:700; color:#e74c3c; font-variant-numeric:tabular-nums; }
+  .wordle-timer.low { animation:wordlePulse 0.5s ease-in-out infinite alternate; }
+  @keyframes wordlePulse { from{opacity:1} to{opacity:0.5} }
+  .wordle-grid { display:grid; gap:5px; justify-content:center; }
+  .wordle-cell {
+    width:52px; height:52px; border:2px solid #3a3a3c;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.8rem; font-weight:700; text-transform:uppercase;
+    color:#fff; transition:background 0.3s, border-color 0.3s;
+  }
+  .wordle-cell.filled { border-color:#565656; }
+  .wordle-cell.correct { background:#538d4e; border-color:#538d4e; }
+  .wordle-cell.present { background:#b59f3b; border-color:#b59f3b; }
+  .wordle-cell.absent { background:#3a3a3c; border-color:#3a3a3c; }
+  .wordle-cell.invalid { animation:wordleShake 0.3s ease; }
+  @keyframes wordleShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-4px)} 40%{transform:translateX(4px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+  .wordle-message { font-size:0.85rem; color:#F5A623; min-height:1.2em; text-align:center; }
+  .wordle-keyboard { display:flex; flex-direction:column; gap:6px; align-items:center; margin-top:8px; }
+  .wordle-kb-row { display:flex; gap:5px; }
+  .wordle-key {
+    min-width:34px; height:46px; border-radius:6px; border:none;
+    background:#818384; color:#fff; font-family:inherit; font-weight:700;
+    font-size:0.85rem; cursor:pointer; display:flex; align-items:center;
+    justify-content:center; text-transform:uppercase; transition:background 0.2s;
+    padding:0 4px;
+  }
+  .wordle-key:hover { opacity:0.85; }
+  .wordle-key.wide { min-width:58px; font-size:0.7rem; }
+  .wordle-key.correct { background:#538d4e; }
+  .wordle-key.present { background:#b59f3b; }
+  .wordle-key.absent { background:#3a3a3c; }
+
+  /* Spectator mini-grid */
+  .wordle-spectator-grid { display:grid; gap:2px; margin-top:6px; }
+  .wordle-spectator-cell {
+    width:18px; height:18px; border-radius:2px; border:1px solid #3a3a3c;
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.55rem; font-weight:700; text-transform:uppercase; color:#fff;
+  }
+  .wordle-spectator-cell.correct { background:#538d4e; border-color:#538d4e; }
+  .wordle-spectator-cell.present { background:#b59f3b; border-color:#b59f3b; }
+  .wordle-spectator-cell.absent { background:#3a3a3c; border-color:#3a3a3c; }
+
+  /* Robbery result popup */
+  .robbery-result-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.85);
+    z-index:250; display:none; align-items:center; justify-content:center;
+  }
+  .robbery-result-overlay.show { display:flex; }
+  .robbery-result-popup {
+    background:var(--surface); border:2px solid rgba(255,255,255,0.15);
+    border-radius:16px; width:380px; max-width:90vw; text-align:center;
+    padding:28px 24px; box-shadow:0 20px 60px rgba(0,0,0,0.6);
+  }
+  .robbery-result-popup.rob-success { border-color:#538d4e; }
+  .robbery-result-popup.rob-fail { border-color:#E74856; }
+  .robbery-result-icon { font-size:3rem; margin-bottom:10px; }
+  .robbery-result-title { font-size:1.3rem; font-weight:700; color:var(--text); margin-bottom:8px; }
+  .robbery-result-body { font-size:0.9rem; color:var(--text-muted); margin-bottom:20px; line-height:1.6; }
+  .robbery-result-close {
+    background:var(--accent); color:#fff; border:none; border-radius:8px;
+    padding:10px 32px; font-size:0.95rem; font-weight:700; cursor:pointer;
+    font-family:inherit; transition:opacity 0.2s;
+  }
+  .robbery-result-close:hover { opacity:0.85; }
+
+  /* Ticker: new event red highlight (first pass) */
+  .news-ticker-item.ticker-new {
+    background:rgba(220,50,50,0.2); border-radius:4px;
+    transition:background 0.5s;
+  }
+  /* Ticker: robbery event styling */
+  .news-ticker-item.robbery .ticker-indicator { color:#E74856; }
+  .news-ticker-item.robbery .ticker-stock { color:#E74856; font-weight:900; }
+
   /* ── Left Panel (inventory + boost) ── */
   .left-panel {
     display: none;
@@ -1098,12 +1294,50 @@
     pointer-events: none; white-space: nowrap;
   }
 
-  /* ── Ready Bar (below status bar) ── */
+  /* ── Info Bar (ready bar + ticker) ── */
+  .info-bar {
+    display: none;
+    align-items: center;
+    background: var(--surface2);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+  .info-bar.visible { display: flex; }
+  .info-bar-ticker {
+    flex: 1;
+    overflow: hidden;
+    height: 40px;
+    position: relative;
+    min-width: 0;
+    background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.35) 100%);
+  }
+  .info-bar-ticker::before {
+    content: 'BREAKING';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    color: #fff;
+    background: #E74856;
+    z-index: 2;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .info-bar-ticker .news-ticker-track {
+    height: 100%;
+  }
+
+  /* ── Ready Bar (inside info bar) ── */
   .ready-bar {
     display: none; align-items: center; gap: 12px;
     padding: 8px 16px;
-    background: var(--surface2);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    flex-shrink: 0;
   }
   .ready-bar.visible { display: flex; }
   .ready-bar-btn {
@@ -1131,15 +1365,81 @@
   }
   .ready-bar-chip.is-ready { background: #47B04B; color: #fff; }
 
+  /* ── News Ticker ── */
+  .news-ticker {
+    overflow: hidden;
+    background: rgba(0,0,0,0.5);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    height: 36px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .news-ticker::before {
+    content: 'NEWS';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    color: #fff;
+    background: var(--accent);
+    z-index: 2;
+  }
+  .news-ticker-track {
+    position: relative;
+    white-space: nowrap;
+    height: 100%;
+    overflow: visible;
+  }
+  .news-ticker-item {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    padding: 0 28px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    color: rgba(255,255,255,0.9);
+    will-change: transform;
+  }
+  .news-ticker-item .ticker-stock {
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+  .news-ticker-item.bullish .ticker-stock { color: #47B04B; }
+  .news-ticker-item.bearish .ticker-stock { color: #E74856; }
+  .news-ticker-item.bullish .ticker-indicator { color: #47B04B; }
+  .news-ticker-item.bearish .ticker-indicator { color: #E74856; }
+  .news-ticker-item .ticker-indicator {
+    font-size: 1rem;
+    font-weight: 900;
+  }
+  .news-ticker-separator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    color: rgba(255,255,255,0.2);
+    padding: 0 4px;
+    font-size: 0.8rem;
+    will-change: transform;
+  }
+
+
   /* ══════════════════════════════════════════════════════════════════════════
      RESPONSIVE STYLES
      ══════════════════════════════════════════════════════════════════════════ */
-
-  /* Large screens - default wheel size constraint */
-  .wheel-cell-inner {
-    max-width: min(500px, 70vh);
-    max-height: min(500px, 70vh);
-  }
 
   /* Medium screens (tablets, smaller monitors) */
   @media (max-width: 1200px) {
@@ -1149,7 +1449,6 @@
     }
     #stockDetailChart {
       width: 100% !important;
-      max-width: 400px;
       height: auto !important;
       max-height: 220px;
     }
@@ -1327,19 +1626,12 @@
 <div class="connection-overlay" id="connectionOverlay">
   <div class="connection-box">
     <h2>WHEEL SPIN — MULTIPLAYER</h2>
-    <div class="conn-tabs">
-      <button class="active" data-mode="host">Host</button>
-      <button data-mode="join">Join</button>
-    </div>
-    <div class="conn-form active" id="hostForm">
-      <input type="text" id="hostNameInput" placeholder="Your name" maxlength="30" value="">
-      <input type="number" id="portInput" value="8080" min="1024" max="65535" placeholder="Port">
-      <button class="conn-submit" id="startHostBtn">Start Hosting</button>
-    </div>
-    <div class="conn-form" id="joinForm">
-      <input type="text" id="joinNameInput" placeholder="Your name" maxlength="30" value="">
-      <input type="text" id="joinAddress" placeholder="IP:Port (e.g. 192.168.1.100:8080)">
-      <button class="conn-submit" id="connectBtn">Connect</button>
+    <div class="conn-form active" id="joinForm">
+      <select id="playerSelect">
+        <option value="" disabled selected>Loading players...</option>
+      </select>
+      <input type="text" id="newNameInput" placeholder="Enter new name" maxlength="30" style="display:none">
+      <button class="conn-submit" id="connectBtn">Join</button>
     </div>
     <div class="conn-error" id="connError"></div>
   </div>
@@ -1357,10 +1649,15 @@
 </div>
 
 <!-- Ready Bar (persistent, below status bar) -->
-<div class="ready-bar" id="readyBar">
-  <button class="ready-bar-btn" id="readyBarBtn">READY</button>
-  <span class="ready-bar-countdown" id="readyBarCountdown"></span>
-  <div class="ready-bar-players" id="readyBarPlayers"></div>
+<div class="info-bar" id="infoBar">
+  <div class="ready-bar" id="readyBar">
+    <button class="ready-bar-btn" id="readyBarBtn">READY</button>
+    <span class="ready-bar-countdown" id="readyBarCountdown"></span>
+    <div class="ready-bar-players" id="readyBarPlayers"></div>
+  </div>
+  <div class="info-bar-ticker" id="mainTicker">
+    <div class="news-ticker-track" id="mainTickerTrack"></div>
+  </div>
 </div>
 
 <div class="app" id="app">
@@ -1403,6 +1700,7 @@
   <div class="menu-buttons" id="menuButtons">
     <button class="menu-btn" data-popup="shop">Shop</button>
     <button class="menu-btn" data-popup="market">Market</button>
+    <button class="menu-btn" data-popup="upgrades">Upgrades</button>
     <button class="menu-btn" data-popup="entries">Entries</button>
     <button class="menu-btn" data-popup="configure">Configure</button>
   </div>
@@ -1426,6 +1724,7 @@
             <option value="add_entry">Add to Wheel</option>
             <option value="remove_entry">Remove from Wheel</option>
             <option value="inventory">Inventory Item</option>
+            <option value="analyst">Market Analyst</option>
           </select>
         </div>
         <select id="shopNewWheel" title="Target wheel"></select>
@@ -1462,6 +1761,20 @@
   </div>
 </div>
 
+<!-- Upgrades Popup -->
+<div class="popup-overlay" id="popup-upgrades">
+  <div class="popup">
+    <div class="popup-header">
+      <span class="popup-title">Upgrades</span>
+      <button class="popup-close">&times;</button>
+    </div>
+    <div class="popup-body">
+      <div class="upgrade-cards" id="upgradeCards"></div>
+      <div class="robbery-section" id="robberySection"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Market Popup -->
 <div class="popup-overlay" id="popup-market">
   <div class="popup wide">
@@ -1470,23 +1783,26 @@
       <span class="entry-count" id="marketStatus">--</span>
       <button class="popup-close">&times;</button>
     </div>
-    <div class="popup-body" style="display:flex;flex-direction:column;gap:16px;">
-      <div style="display:flex;gap:16px;flex:1;min-height:0;">
-        <div id="stockList" style="flex:0 0 280px;overflow-y:auto;max-height:55vh;"></div>
-        <div id="stockDetail" style="flex:1;min-width:0;display:none;">
+    <div class="news-ticker" id="marketTicker">
+      <div class="news-ticker-track" id="marketTickerTrack"></div>
+    </div>
+    <div class="popup-body" style="display:flex;flex-direction:column;gap:0;padding:0;">
+      <div style="display:flex;gap:0;flex:1;min-height:0;">
+        <div id="stockList" style="flex:0 0 340px;overflow-y:auto;padding:16px;border-right:1px solid rgba(255,255,255,0.06);"></div>
+        <div id="stockDetail" style="flex:1;min-width:0;display:none;flex-direction:column;padding:16px 20px;overflow:hidden;">
           <div class="stock-detail-header" id="stockDetailName"></div>
           <div style="position:relative;">
-            <canvas class="stock-detail-chart" id="stockDetailChart" width="500" height="280"></canvas>
+            <canvas class="stock-detail-chart" id="stockDetailChart" width="600" height="340"></canvas>
             <div id="chartTooltip" style="position:absolute;display:none;background:rgba(0,0,0,0.9);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:6px 10px;font-size:0.8rem;pointer-events:none;z-index:10;"></div>
           </div>
-          <div class="stock-detail-trade" id="stockDetailTrade"></div>
+          <div class="stock-detail-trade" id="stockDetailTrade" style="padding-top:12px;flex-shrink:0;"></div>
         </div>
-        <div id="positionsPanel" style="flex:0 0 260px;border-left:1px solid rgba(255,255,255,0.1);padding-left:16px;overflow-y:auto;max-height:55vh;">
+        <div id="positionsPanel" style="flex:0 0 240px;border-left:1px solid rgba(255,255,255,0.06);padding:16px;overflow-y:auto;">
           <h4 style="margin:0 0 12px 0;font-size:0.9rem;color:var(--text-muted);">Your Positions</h4>
           <div id="positionsList"></div>
         </div>
       </div>
-      <div id="ordersSection" style="border-top:1px solid rgba(255,255,255,0.1);padding-top:12px;">
+      <div id="ordersSection" style="border-top:1px solid rgba(255,255,255,0.06);padding:12px 20px;">
         <div style="display:flex;gap:16px;margin-bottom:8px;">
           <button class="order-tab active" data-tab="pending">Pending Orders</button>
           <button class="order-tab" data-tab="history">Order History</button>
@@ -1562,6 +1878,26 @@
           <div class="config-section-title">Entry Sounds &amp; Triggers</div>
           <div id="entryConfigList"></div>
         </div>
+
+        <!-- World Events Editor (host only) -->
+        <div class="config-section" id="worldEventsSection" style="display:none;">
+          <div class="config-section-title">World Events</div>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;">Custom events that affect multiple stocks at once. These fire randomly alongside regular stock events.</p>
+          <div id="worldEventsList"></div>
+          <div id="worldEventAddForm" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;padding:10px;border:1px dashed rgba(255,255,255,0.15);border-radius:8px;background:rgba(0,0,0,0.15);">
+            <input type="text" id="weHeadline" placeholder="Headline (e.g. WAR BREAKS OUT)" style="padding:8px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:var(--bg);color:var(--text);font-family:inherit;font-size:0.85rem;">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select id="weSentiment" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:var(--bg);color:var(--text);font-family:inherit;font-size:0.8rem;">
+                <option value="-1">Bearish</option>
+                <option value="1">Bullish</option>
+              </select>
+              <input type="number" id="weStrength" placeholder="Strength" min="0.1" max="5" step="0.1" value="1.5" style="width:70px;padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:var(--bg);color:var(--text);font-family:inherit;font-size:0.8rem;text-align:center;">
+            </div>
+            <div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);">Affects:</div>
+            <div id="weAffectsChecks" style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0;"></div>
+            <button id="weAddBtn" style="padding:8px;border-radius:6px;border:none;background:#47B04B;color:#fff;font-family:inherit;font-weight:700;font-size:0.85rem;cursor:pointer;">Add World Event</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1586,6 +1922,25 @@
       <button class="btn-action-confirm" id="actionConfirm">Confirm</button>
       <button class="btn-action-cancel" id="actionCancel">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- Wordle robbery defense overlay -->
+<div class="wordle-overlay" id="wordleOverlay">
+  <div class="wordle-title" id="wordleTitle">Someone is robbing you!</div>
+  <div class="wordle-timer" id="wordleTimer">60s</div>
+  <div class="wordle-message" id="wordleMessage"></div>
+  <div class="wordle-grid" id="wordleGrid"></div>
+  <div class="wordle-keyboard" id="wordleKeyboard"></div>
+</div>
+
+<!-- Robbery result popup (dismissible) -->
+<div class="robbery-result-overlay" id="robberyResultOverlay">
+  <div class="robbery-result-popup" id="robberyResultPopup">
+    <div class="robbery-result-icon" id="robberyResultIcon"></div>
+    <div class="robbery-result-title" id="robberyResultTitle"></div>
+    <div class="robbery-result-body" id="robberyResultBody"></div>
+    <button class="robbery-result-close" id="robberyResultClose">OK</button>
   </div>
 </div>
 
@@ -1686,6 +2041,51 @@
     }
   };
 
+  let upgradeDefs = {}; // populated on join from server
+
+  function getUpgradeCost(upgradeId, currentLevel) {
+    const def = upgradeDefs[upgradeId];
+    if (!def) return Infinity;
+    return def.baseCost * Math.pow(2, currentLevel);
+  }
+
+  let myRobberyCooldown = 0; // spins remaining
+  let activeRobberyList = []; // { robberyId, attackerName, targetName, resolveAt, ... }
+
+  // Wordle word list
+  let wordList = [];
+  let wordSet = new Set();
+  let wordsByLength = {};
+  let wordsLoaded = false;
+  (async function loadWords() {
+    try {
+      const res = await fetch('/api/words');
+      wordList = await res.json();
+      wordSet = new Set(wordList);
+      for (const w of wordList) {
+        if (!wordsByLength[w.length]) wordsByLength[w.length] = [];
+        wordsByLength[w.length].push(w);
+      }
+      wordsLoaded = true;
+      console.log(`[words] Loaded ${wordList.length} words`);
+    } catch (e) { console.error('Failed to load word list:', e); }
+  })();
+
+  // Wordle defense state
+  let activeWordleRobbery = null;
+  let wordleTimerInterval = null;
+  let wordleGuessState = { currentRow: 0, currentCol: 0, currentGuess: '', keyStates: {} };
+
+  function getUpgradeEffectDesc(upgradeId, level) {
+    switch (upgradeId) {
+      case 'bodyguards':
+        return level === 0 ? 'Unprotected against robbery' : 'Defense level ' + level;
+      case 'criminal_org':
+        return level === 0 ? 'Cannot rob other players' : 'Attack level ' + level;
+      default: return '';
+    }
+  }
+
   function saveConfig() {
     const wc = selectedWheelConfig();
     if (wc) wc.entries = textarea.value;
@@ -1747,6 +2147,7 @@
     // Refresh content when opened
     if (name === 'configure') rebuildConfigUI();
     if (name === 'shop') { rebuildShopUI(); refreshBoostPanel(); }
+    if (name === 'upgrades') rebuildUpgradesUI();
     if (name === 'market') {
       rebuildMarketUI();
       mp.send({ type: 'get_orders' }); // Request orders data
@@ -1977,12 +2378,11 @@
       const titleH = titleEl ? titleEl.getBoundingClientRect().height + 4 : 0;
       const availW = cellRect.width;
       const availH = cellRect.height - titleH;
-      // Responsive max size based on viewport
+      // Responsive max size - only constrain on smaller viewports
       const vw = window.innerWidth, vh = window.innerHeight;
-      let maxSize = 500; // default max
+      let maxSize = Infinity; // no cap on large screens
       if (vw <= 600 || vh <= 500) maxSize = Math.min(320, vh * 0.55);
       else if (vw <= 900 || vh <= 700) maxSize = Math.min(400, vh * 0.6);
-      else maxSize = Math.min(500, vh * 0.7);
       const size = Math.max(Math.min(availW, availH, maxSize), 50);
       const inner = w.canvas.parentElement;
       inner.style.width = size + 'px';
@@ -2264,6 +2664,7 @@
     rebuildDefaultFont();
     rebuildDefaultTrigger();
     rebuildEntryConfig();
+    rebuildWorldEventsUI();
   }
 
   function rebuildDefaultTrigger() {
@@ -2546,6 +2947,152 @@
       row.appendChild(makeRow('Trigger', swSel));
       entryConfigList.appendChild(row);
     });
+  }
+
+  // ── World Events Editor ──
+  function rebuildWorldEventsUI() {
+    const section = document.getElementById('worldEventsSection');
+    if (!section) return;
+
+    // Only show for connected host
+    if (!mp.connected || !mp.isHost) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+
+    // Ensure config has worldEvents array
+    if (!config.worldEvents) config.worldEvents = [];
+
+    // Populate the "Affects" checkboxes with current wheel entries
+    const checksContainer = document.getElementById('weAffectsChecks');
+    checksContainer.innerHTML = '';
+
+    // "All" checkbox
+    const allLabel = document.createElement('label');
+    allLabel.style.cssText = 'display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;font-size:0.75rem;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text-muted);user-select:none;';
+    const allCb = document.createElement('input');
+    allCb.type = 'checkbox'; allCb.value = 'all'; allCb.checked = true;
+    allCb.style.cssText = 'accent-color:var(--accent);';
+    allCb.addEventListener('change', () => {
+      // If "All" is checked, uncheck individual ones
+      if (allCb.checked) {
+        checksContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          if (cb !== allCb) cb.checked = false;
+        });
+      }
+    });
+    allLabel.appendChild(allCb);
+    allLabel.appendChild(document.createTextNode('All'));
+    checksContainer.appendChild(allLabel);
+
+    // Add individual stock checkboxes
+    const wc = selectedWheelConfig();
+    if (wc) {
+      const entries = (wc.entries || '').split('\n').map(s => s.trim()).filter(Boolean);
+      const unique = [...new Set(entries)];
+      unique.forEach(name => {
+        const label = document.createElement('label');
+        label.style.cssText = 'display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;font-size:0.75rem;font-weight:600;cursor:pointer;background:var(--surface);color:var(--text-muted);user-select:none;';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.value = name;
+        cb.style.cssText = 'accent-color:var(--accent);';
+        cb.addEventListener('change', () => {
+          // If any individual stock is checked, uncheck "All"
+          if (cb.checked) allCb.checked = false;
+          // If none are checked, re-check "All"
+          const anyChecked = [...checksContainer.querySelectorAll('input[type="checkbox"]')].some(c => c !== allCb && c.checked);
+          if (!anyChecked) allCb.checked = true;
+        });
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(name));
+        checksContainer.appendChild(label);
+      });
+    }
+
+    // Render existing world events list
+    const listEl = document.getElementById('worldEventsList');
+    listEl.innerHTML = '';
+
+    if (config.worldEvents.length === 0) {
+      listEl.innerHTML = '<div style="font-size:0.75rem;color:var(--text-muted);padding:6px 0;">No custom world events yet. Default events will still fire.</div>';
+    } else {
+      config.worldEvents.forEach((ev, idx) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:4px;border-radius:6px;background:rgba(0,0,0,0.2);font-size:0.8rem;';
+
+        const sentimentBadge = document.createElement('span');
+        sentimentBadge.textContent = ev.sentiment > 0 ? '\u{1F4C8}' : '\u{1F4C9}';
+        sentimentBadge.title = ev.sentiment > 0 ? 'Bullish' : 'Bearish';
+
+        const headline = document.createElement('span');
+        headline.style.cssText = 'flex:1;font-weight:600;';
+        headline.textContent = ev.headline;
+
+        const affects = document.createElement('span');
+        affects.style.cssText = 'font-size:0.7rem;color:var(--text-muted);';
+        affects.textContent = ev.affects === 'all' ? 'All' : Array.isArray(ev.affects) ? ev.affects.join(', ') : ev.affects;
+
+        const strength = document.createElement('span');
+        strength.style.cssText = 'font-size:0.7rem;color:var(--text-muted);min-width:30px;text-align:center;';
+        strength.textContent = (ev.strength || 1.5).toFixed(1) + 'x';
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '\u2715';
+        delBtn.title = 'Remove';
+        delBtn.style.cssText = 'background:none;border:none;color:#E74856;cursor:pointer;font-size:1rem;padding:2px 6px;';
+        delBtn.addEventListener('click', () => {
+          config.worldEvents.splice(idx, 1);
+          saveConfig();
+          rebuildWorldEventsUI();
+        });
+
+        row.appendChild(sentimentBadge);
+        row.appendChild(headline);
+        row.appendChild(affects);
+        row.appendChild(strength);
+        row.appendChild(delBtn);
+        listEl.appendChild(row);
+      });
+    }
+
+    // Wire up add button (re-wire each time since innerHTML might have changed)
+    const addBtn = document.getElementById('weAddBtn');
+    addBtn.onclick = () => {
+      const headlineInput = document.getElementById('weHeadline');
+      const sentimentSel = document.getElementById('weSentiment');
+      const strengthInput = document.getElementById('weStrength');
+      const checks = document.getElementById('weAffectsChecks');
+
+      const headline = headlineInput.value.trim().toUpperCase();
+      if (!headline) { headlineInput.focus(); return; }
+
+      // Read checked stocks
+      const allCb = checks.querySelector('input[value="all"]');
+      let affects;
+      if (allCb && allCb.checked) {
+        affects = 'all';
+      } else {
+        const selected = [...checks.querySelectorAll('input[type="checkbox"]:checked')].map(cb => cb.value).filter(v => v !== 'all');
+        affects = selected.length > 0 ? selected : 'all';
+      }
+
+      const newEvent = {
+        headline,
+        sentiment: parseInt(sentimentSel.value),
+        affects,
+        strength: parseFloat(strengthInput.value) || 1.5,
+      };
+
+      config.worldEvents.push(newEvent);
+      saveConfig();
+
+      // Reset form
+      headlineInput.value = '';
+      strengthInput.value = '1.5';
+
+      rebuildWorldEventsUI();
+    };
   }
 
   // ── Action Modal ──
@@ -2880,36 +3427,91 @@
       const myBalance = me ? me.points : 0;
 
       config.shop.forEach(item => {
-        const btn = document.createElement('button');
-        btn.className = 'shop-item-btn';
-        btn.disabled = myBalance < item.cost;
+        if (item.action === 'analyst') {
+          // Analyst item: show stock picker + buy button
+          const wrapper = document.createElement('div');
+          wrapper.className = 'shop-item-btn';
+          wrapper.style.cursor = 'default';
+          wrapper.style.flexDirection = 'column';
+          wrapper.style.alignItems = 'stretch';
+          wrapper.style.gap = '8px';
+          if (myBalance < item.cost) wrapper.style.opacity = '0.4';
 
-        const nameEl = document.createElement('span');
-        nameEl.className = 'shop-item-name';
-        nameEl.textContent = item.name;
-        btn.appendChild(nameEl);
+          const topRow = document.createElement('div');
+          topRow.style.cssText = 'display:flex;align-items:center;gap:8px;';
+          const nameEl = document.createElement('span');
+          nameEl.className = 'shop-item-name';
+          nameEl.textContent = item.name;
+          topRow.appendChild(nameEl);
+          const costEl = document.createElement('span');
+          costEl.className = 'shop-item-cost';
+          costEl.textContent = '$' + item.cost;
+          topRow.appendChild(costEl);
+          wrapper.appendChild(topRow);
 
-        const actionLabel = document.createElement('span');
-        actionLabel.className = 'shop-item-action';
-        if (item.action === 'inventory') {
-          actionLabel.textContent = 'Goes to inventory';
+          const bottomRow = document.createElement('div');
+          bottomRow.style.cssText = 'display:flex;align-items:center;gap:8px;';
+          const sel = document.createElement('select');
+          sel.style.cssText = 'flex:1;padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:var(--bg);color:var(--text);font-family:inherit;font-size:0.8rem;';
+          const defaultOpt = document.createElement('option');
+          defaultOpt.value = '';
+          defaultOpt.textContent = 'Select stock...';
+          sel.appendChild(defaultOpt);
+          Object.keys(currentStockPrices).sort().forEach(sn => {
+            const opt = document.createElement('option');
+            opt.value = sn;
+            opt.textContent = sn + ' ($' + currentStockPrices[sn].price.toFixed(2) + ')';
+            sel.appendChild(opt);
+          });
+          bottomRow.appendChild(sel);
+
+          const buyBtn = document.createElement('button');
+          buyBtn.textContent = 'Buy';
+          buyBtn.style.cssText = 'padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:inherit;';
+          buyBtn.disabled = true;
+          sel.addEventListener('change', () => { buyBtn.disabled = !sel.value || myBalance < item.cost; });
+          buyBtn.addEventListener('click', () => {
+            if (sel.value) {
+              mp.send({ type: 'analyst_purchase', payload: { itemIndex: config.shop.indexOf(item), stockName: sel.value } });
+            }
+          });
+          bottomRow.appendChild(buyBtn);
+          wrapper.appendChild(bottomRow);
+
+          shopItemsEl.appendChild(wrapper);
         } else {
-          const wheelTitle = config.wheels[item.wheelId] ? config.wheels[item.wheelId].title : 'Wheel';
-          if (item.action === 'add_entry') actionLabel.textContent = 'Add to ' + wheelTitle;
-          else if (item.action === 'remove_entry') actionLabel.textContent = 'Remove from ' + wheelTitle;
+          // Standard shop items
+          const btn = document.createElement('button');
+          btn.className = 'shop-item-btn';
+          btn.disabled = myBalance < item.cost;
+
+          const nameEl = document.createElement('span');
+          nameEl.className = 'shop-item-name';
+          nameEl.textContent = item.name;
+          btn.appendChild(nameEl);
+
+          const actionLabel = document.createElement('span');
+          actionLabel.className = 'shop-item-action';
+          if (item.action === 'inventory') {
+            actionLabel.textContent = 'Goes to inventory';
+          } else {
+            const wheelTitle = config.wheels[item.wheelId] ? config.wheels[item.wheelId].title : 'Wheel';
+            if (item.action === 'add_entry') actionLabel.textContent = 'Add to ' + wheelTitle;
+            else if (item.action === 'remove_entry') actionLabel.textContent = 'Remove from ' + wheelTitle;
+          }
+          btn.appendChild(actionLabel);
+
+          const costEl = document.createElement('span');
+          costEl.className = 'shop-item-cost';
+          costEl.textContent = '$' + item.cost;
+          btn.appendChild(costEl);
+
+          btn.addEventListener('click', () => {
+            mp.send({ type: 'shop_purchase', payload: { itemIndex: config.shop.indexOf(item) } });
+          });
+
+          shopItemsEl.appendChild(btn);
         }
-        btn.appendChild(actionLabel);
-
-        const costEl = document.createElement('span');
-        costEl.className = 'shop-item-cost';
-        costEl.textContent = '$' + item.cost;
-        btn.appendChild(costEl);
-
-        btn.addEventListener('click', () => {
-          mp.send({ type: 'shop_purchase', payload: { itemIndex: config.shop.indexOf(item) } });
-        });
-
-        shopItemsEl.appendChild(btn);
       });
     }
   }
@@ -2954,9 +3556,9 @@
   const shopNewItemType = document.getElementById('shopNewItemType');
   const shopNewWheel = document.getElementById('shopNewWheel');
   shopNewAction.addEventListener('change', () => {
-    const isInv = shopNewAction.value === 'inventory';
-    shopNewItemType.style.display = isInv ? '' : 'none';
-    shopNewWheel.style.display = isInv ? 'none' : '';
+    const val = shopNewAction.value;
+    shopNewItemType.style.display = val === 'inventory' ? '' : 'none';
+    shopNewWheel.style.display = (val === 'inventory' || val === 'analyst') ? 'none' : '';
   });
 
   document.getElementById('shopAddBtn').addEventListener('click', () => {
@@ -2971,6 +3573,8 @@
     if (shopSound) item.sound = shopSound;
     if (action === 'inventory') {
       item.itemType = shopNewItemType.value;
+    } else if (action === 'analyst') {
+      // No wheel or item type needed for analyst
     } else {
       item.wheelId = wheelId;
     }
@@ -2991,6 +3595,564 @@
   function getMyInventory() {
     const me = mp.players.find(p => p.name === mp.playerName);
     return me ? (me.inventory || []) : [];
+  }
+
+  const upgradeIcons = {
+    bodyguards: { icon: '\u{1F6E1}\uFE0F', bg: '#2d4a7a' },
+    criminal_org: { icon: '\u{1F5E1}\uFE0F', bg: '#5a2d2d' },
+  };
+
+  function rebuildUpgradesUI() {
+    const container = document.getElementById('upgradeCards');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const me = mp.players.find(p => p.name === mp.playerName);
+    const myBalance = me ? me.points : 0;
+    const myUpgrades = (me && me.upgrades) ? me.upgrades : {};
+
+    if (Object.keys(upgradeDefs).length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:0.85rem;">No upgrades available</div>';
+      return;
+    }
+
+    for (const [id, def] of Object.entries(upgradeDefs)) {
+      const currentLevel = myUpgrades[id] || 0;
+      const maxLevel = def.maxLevel === -1 ? Infinity : def.maxLevel;
+      const isMaxed = currentLevel >= maxLevel;
+      const cost = isMaxed ? 0 : getUpgradeCost(id, currentLevel);
+      const canAfford = myBalance >= cost;
+      const iconInfo = upgradeIcons[id] || { icon: '\u2B06', bg: '#3a3a5c' };
+
+      const card = document.createElement('div');
+      card.className = 'upgrade-card';
+
+      const iconEl = document.createElement('div');
+      iconEl.className = 'upgrade-icon';
+      iconEl.style.background = iconInfo.bg;
+      iconEl.textContent = iconInfo.icon;
+      card.appendChild(iconEl);
+
+      const infoEl = document.createElement('div');
+      infoEl.className = 'upgrade-info';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'upgrade-name';
+      nameEl.textContent = def.name;
+      infoEl.appendChild(nameEl);
+
+      const levelEl = document.createElement('div');
+      levelEl.className = 'upgrade-level';
+      levelEl.textContent = 'Level ' + currentLevel + (maxLevel === Infinity ? '' : ' / ' + maxLevel);
+      infoEl.appendChild(levelEl);
+
+      const effectEl = document.createElement('div');
+      effectEl.className = 'upgrade-effect';
+      effectEl.textContent = getUpgradeEffectDesc(id, currentLevel);
+      infoEl.appendChild(effectEl);
+
+      card.appendChild(infoEl);
+
+      if (isMaxed) {
+        const maxedEl = document.createElement('span');
+        maxedEl.className = 'upgrade-maxed';
+        maxedEl.textContent = 'MAXED';
+        card.appendChild(maxedEl);
+      } else {
+        const buyBtn = document.createElement('button');
+        buyBtn.className = 'upgrade-buy-btn';
+        buyBtn.disabled = !canAfford;
+        buyBtn.textContent = '$' + cost.toLocaleString();
+        buyBtn.addEventListener('click', () => {
+          mp.send({ type: 'upgrade_purchase', payload: { upgradeId: id } });
+        });
+        card.appendChild(buyBtn);
+      }
+
+      container.appendChild(card);
+    }
+
+    rebuildRobberyUI();
+  }
+
+  let robberyTimerInterval = null;
+
+  function rebuildRobberyUI() {
+    const section = document.getElementById('robberySection');
+    if (!section) return;
+    section.innerHTML = '';
+
+    const me = mp.players.find(p => p.name === mp.playerName);
+    const myUpgrades = (me && me.upgrades) ? me.upgrades : {};
+    const crimLevel = myUpgrades.criminal_org || 0;
+
+    // Title
+    const title = document.createElement('div');
+    title.className = 'robbery-section-title';
+    title.textContent = 'Robbery';
+    section.appendChild(title);
+
+    // Only show robbery controls if player has criminal_org >= 1
+    if (crimLevel === 0) {
+      const hint = document.createElement('div');
+      hint.style.cssText = 'font-size:0.8rem;color:var(--text-muted);';
+      hint.textContent = 'Upgrade Criminal Organization to unlock robbery.';
+      section.appendChild(hint);
+    } else {
+      const controls = document.createElement('div');
+      controls.className = 'robbery-controls';
+
+      // Player selector
+      const sel = document.createElement('select');
+      sel.id = 'robberyTarget';
+      const defaultOpt = document.createElement('option');
+      defaultOpt.value = '';
+      defaultOpt.disabled = true;
+      defaultOpt.selected = true;
+      defaultOpt.textContent = 'Select target...';
+      sel.appendChild(defaultOpt);
+
+      // Add all players except self
+      const otherPlayers = mp.players.filter(p => p.name !== mp.playerName);
+      for (const p of otherPlayers) {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        const defLvl = (p.upgrades && p.upgrades.bodyguards) || 0;
+        const connStr = p.connected ? '' : ' (offline)';
+        opt.textContent = p.name + connStr + ' — Def ' + defLvl;
+        sel.appendChild(opt);
+      }
+      controls.appendChild(sel);
+
+      // Check if we already have an active robbery
+      const hasActiveRobbery = activeRobberyList.some(r => r.attackerName === mp.playerName);
+
+      // Rob button
+      const robBtn = document.createElement('button');
+      robBtn.className = 'rob-btn';
+      if (myRobberyCooldown > 0) {
+        robBtn.textContent = 'Cooldown (' + myRobberyCooldown + ')';
+        robBtn.disabled = true;
+      } else if (hasActiveRobbery) {
+        robBtn.textContent = 'In progress...';
+        robBtn.disabled = true;
+      } else {
+        robBtn.textContent = 'Rob';
+        robBtn.addEventListener('click', () => {
+          const target = sel.value;
+          if (!target) return;
+          if (!wordsLoaded) { showToast('Word list loading...', 'Please wait'); setTimeout(hideToast, 2000); return; }
+          showWordSelectionPanel(target, section);
+        });
+      }
+      controls.appendChild(robBtn);
+      section.appendChild(controls);
+
+      if (myRobberyCooldown > 0) {
+        const cdText = document.createElement('div');
+        cdText.className = 'robbery-cooldown-text';
+        cdText.textContent = myRobberyCooldown + ' spin' + (myRobberyCooldown > 1 ? 's' : '') + ' until you can rob again';
+        section.appendChild(cdText);
+      }
+    }
+
+    // Active robberies (always shown)
+    if (activeRobberyList.length > 0) {
+      const robberies = document.createElement('div');
+      robberies.className = 'active-robberies';
+
+      for (const r of activeRobberyList) {
+        const item = document.createElement('div');
+        const isVictim = r.targetName === mp.playerName;
+        const isAttacker = r.attackerName === mp.playerName;
+        item.className = 'robbery-item' + (isVictim ? ' defending' : '');
+
+        const timer = document.createElement('div');
+        timer.className = 'robbery-timer';
+        timer.dataset.resolveAt = r.resolveAt;
+        const remaining = Math.max(0, Math.ceil((r.resolveAt - Date.now()) / 1000));
+        timer.textContent = remaining + 's';
+        item.appendChild(timer);
+
+        const detail = document.createElement('div');
+        detail.className = 'robbery-detail';
+
+        const dtitle = document.createElement('div');
+        dtitle.className = 'robbery-detail-title';
+        if (isAttacker) {
+          dtitle.textContent = 'Robbing ' + r.targetName + '...';
+        } else if (isVictim) {
+          dtitle.textContent = r.attackerName + ' is robbing you!';
+        } else {
+          dtitle.textContent = r.attackerName + ' is robbing ' + r.targetName;
+        }
+        detail.appendChild(dtitle);
+
+        const dsub = document.createElement('div');
+        dsub.className = 'robbery-detail-sub';
+        const guessCount = (r.guesses || []).length;
+        dsub.textContent = r.wordLength + ' letters \u2022 ' + guessCount + '/' + (r.maxGuesses || 6) + ' guesses';
+        detail.appendChild(dsub);
+
+        // Spectator Wordle mini-grid
+        if (r.wordLength) {
+          const spectatorGrid = document.createElement('div');
+          spectatorGrid.className = 'wordle-spectator-grid';
+          spectatorGrid.style.gridTemplateColumns = 'repeat(' + r.wordLength + ', 18px)';
+          for (const g of (r.guesses || [])) {
+            for (let c = 0; c < g.guess.length; c++) {
+              const cell = document.createElement('div');
+              cell.className = 'wordle-spectator-cell ' + g.feedback[c];
+              cell.textContent = g.guess[c].toUpperCase();
+              spectatorGrid.appendChild(cell);
+            }
+          }
+          // Empty rows
+          const remainingGuesses = (r.maxGuesses || 6) - guessCount;
+          for (let row = 0; row < remainingGuesses; row++) {
+            for (let c = 0; c < r.wordLength; c++) {
+              const cell = document.createElement('div');
+              cell.className = 'wordle-spectator-cell';
+              spectatorGrid.appendChild(cell);
+            }
+          }
+          detail.appendChild(spectatorGrid);
+        }
+
+        item.appendChild(detail);
+        robberies.appendChild(item);
+      }
+
+      section.appendChild(robberies);
+
+      // Start timer interval to update countdowns
+      startRobberyTimers();
+    }
+  }
+
+  function startRobberyTimers() {
+    if (robberyTimerInterval) clearInterval(robberyTimerInterval);
+    robberyTimerInterval = setInterval(() => {
+      const timers = document.querySelectorAll('.robbery-timer[data-resolve-at]');
+      if (timers.length === 0) { clearInterval(robberyTimerInterval); robberyTimerInterval = null; return; }
+      for (const el of timers) {
+        const resolveAt = parseInt(el.dataset.resolveAt);
+        const remaining = Math.max(0, Math.ceil((resolveAt - Date.now()) / 1000));
+        el.textContent = remaining + 's';
+      }
+      // Update progress bars
+      const bars = document.querySelectorAll('.robbery-item');
+      for (let i = 0; i < bars.length && i < activeRobberyList.length; i++) {
+        const r = activeRobberyList[i];
+        const bar = bars[i].querySelector('.robbery-progress-bar');
+        if (bar && r) {
+          const elapsed = Date.now() - (r.resolveAt - r.durationMs);
+          const pct = Math.min(100, Math.max(0, (elapsed / r.durationMs) * 100));
+          bar.style.width = pct + '%';
+        }
+      }
+    }, 500);
+  }
+
+  // ── Wordle Overlay (victim defense) ──
+  function showWordleOverlay(robbery) {
+    activeWordleRobbery = robbery;
+    wordleGuessState = { currentRow: 0, currentCol: 0, currentGuess: '', keyStates: {} };
+
+    const overlay = document.getElementById('wordleOverlay');
+    const title = document.getElementById('wordleTitle');
+    const timer = document.getElementById('wordleTimer');
+    const grid = document.getElementById('wordleGrid');
+    const keyboard = document.getElementById('wordleKeyboard');
+    const message = document.getElementById('wordleMessage');
+
+    title.textContent = robbery.attackerName + ' is robbing you! Guess the ' + robbery.wordLength + '-letter word to defend!';
+    message.textContent = '';
+
+    // Build grid
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = 'repeat(' + robbery.wordLength + ', 52px)';
+    for (let r = 0; r < robbery.maxGuesses; r++) {
+      for (let c = 0; c < robbery.wordLength; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'wordle-cell';
+        cell.id = 'wc-' + r + '-' + c;
+        grid.appendChild(cell);
+      }
+    }
+
+    // Build keyboard
+    keyboard.innerHTML = '';
+    const kbRows = [
+      ['q','w','e','r','t','y','u','i','o','p'],
+      ['a','s','d','f','g','h','j','k','l'],
+      ['Enter','z','x','c','v','b','n','m','Back'],
+    ];
+    for (const row of kbRows) {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'wordle-kb-row';
+      for (const key of row) {
+        const btn = document.createElement('button');
+        btn.className = 'wordle-key' + (key === 'Enter' || key === 'Back' ? ' wide' : '');
+        btn.dataset.letter = key.length === 1 ? key : key.toLowerCase();
+        btn.textContent = key;
+        btn.addEventListener('click', () => {
+          if (key === 'Enter') submitWordleGuess();
+          else if (key === 'Back') wordleBackspace();
+          else wordleTypeLetter(key);
+        });
+        rowEl.appendChild(btn);
+      }
+      keyboard.appendChild(rowEl);
+    }
+
+    // Restore existing guesses (reconnect scenario)
+    for (const g of robbery.guesses || []) {
+      applyWordleGuess(g.guess, g.feedback, g.guessNum - 1);
+      // Update key states
+      for (let i = 0; i < g.guess.length; i++) {
+        const letter = g.guess[i];
+        const state = g.feedback[i];
+        const cur = wordleGuessState.keyStates[letter];
+        if (state === 'correct' || (state === 'present' && cur !== 'correct') || !cur) {
+          wordleGuessState.keyStates[letter] = state;
+        }
+      }
+    }
+    wordleGuessState.currentRow = (robbery.guesses || []).length;
+    // Apply key colors
+    for (const [letter, state] of Object.entries(wordleGuessState.keyStates)) {
+      const keyEl = document.querySelector('.wordle-key[data-letter="' + letter + '"]');
+      if (keyEl) { keyEl.classList.remove('correct','present','absent'); keyEl.classList.add(state); }
+    }
+
+    // Start timer
+    startWordleTimer(robbery);
+
+    document.addEventListener('keydown', handleWordleKeydown);
+    overlay.classList.add('show');
+
+    // Play looping alert sound
+    if (!robberyAlertAudio) robberyAlertAudio = new Audio('sounds/alert.mp3');
+    robberyAlertAudio.loop = true;
+    robberyAlertAudio.volume = 0.5;
+    robberyAlertAudio.currentTime = 0;
+    robberyAlertAudio.play().catch(() => {});
+  }
+
+  let robberyAlertAudio = null;
+
+  function hideWordleOverlay() {
+    document.getElementById('wordleOverlay').classList.remove('show');
+    document.removeEventListener('keydown', handleWordleKeydown);
+    activeWordleRobbery = null;
+    if (wordleTimerInterval) { clearInterval(wordleTimerInterval); wordleTimerInterval = null; }
+    if (robberyAlertAudio) { robberyAlertAudio.pause(); robberyAlertAudio.currentTime = 0; }
+  }
+
+  function showRobberyResultPopup(icon, title, body, isSuccess) {
+    document.getElementById('robberyResultIcon').textContent = icon;
+    document.getElementById('robberyResultTitle').textContent = title;
+    document.getElementById('robberyResultBody').innerHTML = body;
+    const popup = document.getElementById('robberyResultPopup');
+    popup.classList.remove('rob-success', 'rob-fail');
+    popup.classList.add(isSuccess ? 'rob-success' : 'rob-fail');
+    document.getElementById('robberyResultOverlay').classList.add('show');
+  }
+  document.getElementById('robberyResultClose').addEventListener('click', () => {
+    document.getElementById('robberyResultOverlay').classList.remove('show');
+  });
+
+  function startWordleTimer(robbery) {
+    if (wordleTimerInterval) clearInterval(wordleTimerInterval);
+    const timerEl = document.getElementById('wordleTimer');
+    wordleTimerInterval = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((robbery.resolveAt - Date.now()) / 1000));
+      timerEl.textContent = remaining + 's';
+      timerEl.classList.toggle('low', remaining <= 10);
+      if (remaining <= 0) { clearInterval(wordleTimerInterval); wordleTimerInterval = null; }
+    }, 200);
+    // Initial update
+    const remaining = Math.max(0, Math.ceil((robbery.resolveAt - Date.now()) / 1000));
+    timerEl.textContent = remaining + 's';
+  }
+
+  function handleWordleKeydown(e) {
+    if (!activeWordleRobbery) return;
+    if (e.key === 'Enter') { e.preventDefault(); submitWordleGuess(); }
+    else if (e.key === 'Backspace') { e.preventDefault(); wordleBackspace(); }
+    else if (/^[a-zA-Z]$/.test(e.key)) wordleTypeLetter(e.key.toLowerCase());
+  }
+
+  function wordleTypeLetter(letter) {
+    if (!activeWordleRobbery) return;
+    if (wordleGuessState.currentCol >= activeWordleRobbery.wordLength) return;
+    const cell = document.getElementById('wc-' + wordleGuessState.currentRow + '-' + wordleGuessState.currentCol);
+    if (cell) { cell.textContent = letter.toUpperCase(); cell.classList.add('filled'); }
+    wordleGuessState.currentGuess += letter;
+    wordleGuessState.currentCol++;
+  }
+
+  function wordleBackspace() {
+    if (!activeWordleRobbery || wordleGuessState.currentCol === 0) return;
+    wordleGuessState.currentCol--;
+    wordleGuessState.currentGuess = wordleGuessState.currentGuess.slice(0, -1);
+    const cell = document.getElementById('wc-' + wordleGuessState.currentRow + '-' + wordleGuessState.currentCol);
+    if (cell) { cell.textContent = ''; cell.classList.remove('filled'); }
+  }
+
+  function submitWordleGuess() {
+    if (!activeWordleRobbery) return;
+    const guess = wordleGuessState.currentGuess.toLowerCase();
+    const msgEl = document.getElementById('wordleMessage');
+    if (guess.length !== activeWordleRobbery.wordLength) {
+      msgEl.textContent = 'Not enough letters';
+      shakeWordleRow(wordleGuessState.currentRow, activeWordleRobbery.wordLength);
+      return;
+    }
+    if (wordsLoaded && !wordSet.has(guess)) {
+      msgEl.textContent = 'Not in word list';
+      shakeWordleRow(wordleGuessState.currentRow, activeWordleRobbery.wordLength);
+      return;
+    }
+    msgEl.textContent = '';
+    mp.send({ type: 'robbery_guess', payload: { robberyId: activeWordleRobbery.robberyId, guess } });
+  }
+
+  function shakeWordleRow(row, len) {
+    for (let c = 0; c < len; c++) {
+      const cell = document.getElementById('wc-' + row + '-' + c);
+      if (cell) {
+        cell.classList.add('invalid');
+        setTimeout(() => cell.classList.remove('invalid'), 400);
+      }
+    }
+  }
+
+  function applyWordleGuess(guess, feedback, rowIndex) {
+    for (let c = 0; c < guess.length; c++) {
+      const cell = document.getElementById('wc-' + rowIndex + '-' + c);
+      if (cell) {
+        cell.textContent = guess[c].toUpperCase();
+        cell.classList.remove('filled');
+        cell.classList.add(feedback[c]);
+      }
+    }
+  }
+
+  // ── Word Selection Panel (attacker) ──
+  function getClientWordLength(attackLevel, defenseLevel) {
+    const levelDiff = attackLevel - defenseLevel;
+    if (levelDiff < 0) return { exact: 3 };
+    if (levelDiff === 0) return { exact: 4 };
+    const calcLen = 4 + levelDiff;
+    if (calcLen >= 8) return { minLength: 8 };
+    return { exact: calcLen };
+  }
+
+  function showWordSelectionPanel(targetName, parentSection) {
+    // Remove any existing panel
+    const existing = parentSection.querySelector('.word-select-panel');
+    if (existing) existing.remove();
+
+    const me = mp.players.find(p => p.name === mp.playerName);
+    const victim = mp.players.find(p => p.name === targetName);
+    const attackLevel = (me && me.upgrades) ? (me.upgrades.criminal_org || 0) : 0;
+    const defenseLevel = (victim && victim.upgrades) ? (victim.upgrades.bodyguards || 0) : 0;
+    const req = getClientWordLength(attackLevel, defenseLevel);
+
+    let eligible;
+    let lengthLabel;
+    if (req.exact) {
+      eligible = wordsByLength[req.exact] || [];
+      lengthLabel = req.exact + '-letter words';
+    } else {
+      eligible = wordList.filter(w => w.length >= req.minLength);
+      lengthLabel = req.minLength + '+ letter words';
+    }
+
+    const panel = document.createElement('div');
+    panel.className = 'word-select-panel';
+
+    const header = document.createElement('div');
+    header.className = 'word-select-header';
+    const headerLabel = document.createElement('span');
+    headerLabel.textContent = 'Select a word for ' + targetName;
+    header.appendChild(headerLabel);
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'word-select-cancel';
+    cancelBtn.textContent = '\u00D7';
+    cancelBtn.addEventListener('click', () => panel.remove());
+    header.appendChild(cancelBtn);
+    panel.appendChild(header);
+
+    const lenInfo = document.createElement('div');
+    lenInfo.className = 'word-length-info';
+    lenInfo.textContent = 'Your Atk ' + attackLevel + ' vs Def ' + defenseLevel + ' \u2192 ' + lengthLabel + ' (' + eligible.length + ' available)';
+    panel.appendChild(lenInfo);
+
+    const searchInput = document.createElement('input');
+    searchInput.className = 'word-search-input';
+    searchInput.placeholder = 'Search words...';
+    searchInput.type = 'text';
+    panel.appendChild(searchInput);
+
+    const wordScroll = document.createElement('div');
+    wordScroll.className = 'word-list-scroll';
+    panel.appendChild(wordScroll);
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'word-confirm-btn';
+    confirmBtn.textContent = 'Send Robbery';
+    confirmBtn.disabled = true;
+    panel.appendChild(confirmBtn);
+
+    let selectedWord = '';
+
+    function renderWords(filter) {
+      wordScroll.innerHTML = '';
+      const filtered = filter
+        ? eligible.filter(w => w.includes(filter.toLowerCase()))
+        : eligible.slice(0, 100);
+      const shown = filtered.slice(0, 100);
+      for (const w of shown) {
+        const opt = document.createElement('div');
+        opt.className = 'word-option' + (w === selectedWord ? ' selected' : '');
+        opt.textContent = w;
+        opt.addEventListener('click', () => {
+          wordScroll.querySelectorAll('.word-option.selected').forEach(el => el.classList.remove('selected'));
+          opt.classList.add('selected');
+          selectedWord = w;
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Send Robbery (' + w.toUpperCase() + ')';
+        });
+        wordScroll.appendChild(opt);
+      }
+      if (filtered.length > 100) {
+        const more = document.createElement('div');
+        more.style.cssText = 'font-size:0.7rem;color:var(--text-muted);padding:4px;';
+        more.textContent = '...and ' + (filtered.length - 100) + ' more — type to filter';
+        wordScroll.appendChild(more);
+      }
+      if (shown.length === 0) {
+        const none = document.createElement('div');
+        none.style.cssText = 'font-size:0.8rem;color:var(--text-muted);padding:8px;';
+        none.textContent = 'No words match';
+        wordScroll.appendChild(none);
+      }
+    }
+
+    searchInput.addEventListener('input', () => renderWords(searchInput.value));
+    renderWords('');
+
+    confirmBtn.addEventListener('click', () => {
+      if (!selectedWord) return;
+      mp.send({ type: 'robbery', payload: { targetName, word: selectedWord } });
+      panel.remove();
+    });
+
+    parentSection.appendChild(panel);
+    searchInput.focus();
   }
 
   function rebuildHotbar() {
@@ -3202,11 +4364,11 @@
     const existingBoost = ew['__idx_' + idx] || 0;
     const entryWeight = baseW + existingBoost;
     if (totalWeight === 0) return;
-    const addedWeight = cost * 0.1;
+    const addedWeight = Math.sqrt(cost) * 0.08;
     const oldChance = (entryWeight / totalWeight) * 100;
     const newChance = ((entryWeight + addedWeight) / (totalWeight + addedWeight)) * 100;
     const delta = newChance - oldChance;
-    lpBoostImpact.textContent = `${oldChance.toFixed(1)}% \u2192 ${newChance.toFixed(1)}% (+${delta.toFixed(1)}%)`;
+    lpBoostImpact.textContent = `~${oldChance.toFixed(1)}% \u2192 ~${newChance.toFixed(1)}% (+${delta.toFixed(1)}%)`;
   });
 
   lpBoostEntry.addEventListener('change', () => {
@@ -3234,6 +4396,7 @@
   let currentStockPrices = {};  // { name: { price, prevPrice, change, history } }
   let currentPortfolios = {};   // { playerName: { entryName: shares } }
   let currentCostBases = {};    // { playerName: { entryName: { totalCost, shares } } }
+  let myAnalystPredictions = {}; // { stockName: { estimatedValue, spinsLeft } }
   // Note: Server now sends personalized targetAngles, so we don't need to save/restore weights
 
   function drawSparkline(canvas, history) {
@@ -3259,7 +4422,12 @@
 
   function drawLargeChart(canvas, history) {
     const ctx = canvas.getContext('2d');
-    const w = canvas.width, h = canvas.height;
+    const dpr = window.devicePixelRatio || 1;
+    // Use logical pixel dimensions (backing store / dpr)
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+    // Reset transform and apply dpr scale for crisp rendering
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const padding = { top: 20, right: 20, bottom: 30, left: 55 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
@@ -3407,56 +4575,61 @@
     if (selectedRow) selectedRow.classList.add('selected');
 
     // Show detail panel
-    detail.style.display = 'block';
+    detail.style.display = 'flex';
     const nameEl = document.getElementById('stockDetailName');
+    const analystInfo = myAnalystPredictions[name];
+    let analystHtml = '';
+    if (analystInfo) {
+      const ev = analystInfo.estimatedValue;
+      const vd = ((stock.price - ev) / ev) * 100;
+      const vl = Math.abs(vd) > 5
+        ? (vd > 0 ? '<span style="color:#E74856;font-weight:700;">OVERVALUED</span>' : '<span style="color:#538d4e;font-weight:700;">UNDERVALUED</span>')
+        : '<span style="color:var(--text-muted);">FAIR</span>';
+      analystHtml = `<div style="margin-top:6px;font-size:0.8rem;color:var(--text-muted);display:flex;gap:12px;align-items:center;">
+        <span>Est. Fair Value: <strong style="color:var(--text);">$${ev.toFixed(2)}</strong></span>
+        ${vl}
+        <span style="opacity:0.6;">${analystInfo.spinsLeft} spin${analystInfo.spinsLeft !== 1 ? 's' : ''} left</span>
+      </div>`;
+    }
     nameEl.innerHTML = `
       <h3 style="margin:0 0 8px 0;font-size:1.3rem;">${name}</h3>
       <span class="stock-price" style="font-size:1.2rem;">$${stock.price.toFixed(2)}</span>
       <span class="stock-change ${stock.change > 0 ? 'up' : stock.change < 0 ? 'down' : 'flat'}" style="font-size:0.9rem;margin-left:8px;">
         ${stock.change >= 0 ? '+' : ''}${stock.change.toFixed(1)}%
       </span>
+      ${analystHtml}
       ${myShares > 0 ? `<div style="margin-top:8px;font-size:0.85rem;color:var(--text-muted);">You own <strong>${myShares}</strong> shares (worth <span style="color:#F5A623;">$${(myShares * stock.price).toFixed(2)}</span>)</div>` : ''}
     `;
 
-    // Draw large chart - resize canvas responsively
-    const canvas = document.getElementById('stockDetailChart');
-    const chartContainer = canvas.parentElement;
-    const containerRect = chartContainer.getBoundingClientRect();
-    const vw = window.innerWidth;
-    // Responsive chart sizes
-    let chartW = 500, chartH = 280;
-    if (vw <= 600) { chartW = Math.min(containerRect.width - 20, 320); chartH = 150; }
-    else if (vw <= 900) { chartW = Math.min(containerRect.width - 20, 400); chartH = 180; }
-    else { chartW = Math.min(containerRect.width - 20, 500); chartH = 280; }
-    canvas.width = chartW;
-    canvas.height = chartH;
-    canvas.style.width = chartW + 'px';
-    canvas.style.height = chartH + 'px';
-    drawLargeChart(canvas, stock.history);
-
-    // Trade controls - preserve current selections
+    // Trade controls first (so flex layout knows their height before we measure chart space)
     const tradeEl = document.getElementById('stockDetailTrade');
     const isLimit = currentOrderType === 'limit';
     const limitVal = currentLimitPrice || stock.price.toFixed(2);
     tradeEl.innerHTML = `
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-        <input type="number" id="detailShareInput" min="1" value="${currentShareCount}" placeholder="#" style="width:60px;">
-        <span id="detailCostPreview" style="font-size:0.85rem;color:var(--text-muted);">= $${(stock.price * currentShareCount).toFixed(2)}</span>
+      <div style="display:flex;gap:12px;align-items:stretch;margin-bottom:14px;background:rgba(0,0,0,0.2);border-radius:10px;padding:14px;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Shares</label>
+          <input type="number" id="detailShareInput" min="1" value="${currentShareCount}" placeholder="#" style="width:80px;padding:10px 12px;font-size:1rem;font-weight:700;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:var(--bg);color:var(--text);font-family:inherit;text-align:center;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;justify-content:center;flex:1;">
+          <span id="detailCostPreview" style="font-size:1.1rem;font-weight:700;color:#F5A623;">= $${(stock.price * currentShareCount).toFixed(2)}</span>
+          <span style="font-size:0.7rem;color:var(--text-muted);">@ $${stock.price.toFixed(2)} per share</span>
+        </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-        <label style="font-size:0.8rem;color:var(--text-muted);">
-          <input type="radio" name="orderType" value="market" ${!isLimit ? 'checked' : ''}> Market
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+        <label style="font-size:0.85rem;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:4px;">
+          <input type="radio" name="orderType" value="market" ${!isLimit ? 'checked' : ''} style="accent-color:var(--accent);"> Market
         </label>
-        <label style="font-size:0.8rem;color:var(--text-muted);">
-          <input type="radio" name="orderType" value="limit" ${isLimit ? 'checked' : ''}> Limit
+        <label style="font-size:0.85rem;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:4px;">
+          <input type="radio" name="orderType" value="limit" ${isLimit ? 'checked' : ''} style="accent-color:var(--accent);"> Limit
         </label>
-        <input type="number" id="detailLimitPrice" placeholder="Limit $" step="0.01" value="${limitVal}" style="width:80px;display:${isLimit ? 'block' : 'none'};">
+        <input type="number" id="detailLimitPrice" placeholder="Limit $" step="0.01" value="${limitVal}" style="width:100px;padding:8px 10px;font-size:0.9rem;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:var(--bg);color:var(--text);font-family:inherit;display:${isLimit ? 'block' : 'none'};">
       </div>
-      <div style="display:flex;gap:8px;">
-        <button class="stock-buy" id="detailBuyBtn">Buy</button>
-        <button class="stock-sell" id="detailSellBtn" ${myShares <= 0 ? 'disabled' : ''}>Sell</button>
+      <div style="display:flex;gap:10px;">
+        <button class="stock-buy" id="detailBuyBtn" style="flex:1;padding:12px 20px;font-size:0.95rem;border-radius:10px;">BUY</button>
+        <button class="stock-sell" id="detailSellBtn" style="flex:1;padding:12px 20px;font-size:0.95rem;border-radius:10px;" ${myShares <= 0 ? 'disabled' : ''}>SELL</button>
       </div>
-      <div id="pendingOrdersArea" style="margin-top:12px;font-size:0.8rem;"></div>
+      <div id="pendingOrdersArea" style="margin-top:14px;font-size:0.8rem;"></div>
     `;
 
     const shareInput = document.getElementById('detailShareInput');
@@ -3501,82 +4674,222 @@
       const limitPrice = orderType === 'limit' ? parseFloat(limitPriceInput.value) : null;
       mp.send({ type: 'sell_stock', payload: { entryName: name, shares, orderType, limitPrice } });
     });
+
+    // Draw chart next frame — layout needs one frame to compute after display:flex
+    requestAnimationFrame(() => {
+      const canvas = document.getElementById('stockDetailChart');
+      if (!canvas) return;
+      canvas.style.width = '100%';
+      canvas.style.height = 'auto';
+      const dpr = window.devicePixelRatio || 1;
+      const chartW = canvas.clientWidth || 400;
+      const chartH = Math.round(chartW * 0.86);
+      canvas.style.height = chartH + 'px';
+      canvas.width = chartW * dpr;
+      canvas.height = chartH * dpr;
+      drawLargeChart(canvas, stock.history);
+    });
   }
 
   function rebuildMarketUI() {
     const stockList = document.getElementById('stockList');
     const stockDetail = document.getElementById('stockDetail');
     if (!stockList) return;
-    stockList.innerHTML = '';
-    if (stockDetail) stockDetail.style.display = 'none';
 
     const myPortfolio = currentPortfolios[mp.playerName] || {};
     const names = Object.keys(currentStockPrices).sort();
 
     if (names.length === 0) {
       stockList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">No stocks yet. Spin the wheel to start the market.</div>';
+      if (stockDetail) stockDetail.style.display = 'none';
       return;
     }
 
+    // Check if we can update in-place (same stock list)
+    const existingRows = stockList.querySelectorAll('.stock-row');
+    const existingNames = Array.from(existingRows).map(r => r.getAttribute('data-name'));
+    const canUpdateInPlace = existingNames.length === names.length && names.every((n, i) => n === existingNames[i]);
+
     let totalPortfolioValue = 0;
-    names.forEach(name => {
-      const stock = currentStockPrices[name];
-      const myShares = myPortfolio[name] || 0;
-      const holdingValue = myShares * stock.price;
-      totalPortfolioValue += holdingValue;
 
-      const row = document.createElement('div');
-      row.className = 'stock-row';
-      row.setAttribute('data-name', name);
+    if (canUpdateInPlace) {
+      // Update existing rows in-place without rebuilding
+      names.forEach((name, i) => {
+        const stock = currentStockPrices[name];
+        const myShares = myPortfolio[name] || 0;
+        const holdingValue = myShares * stock.price;
+        totalPortfolioValue += holdingValue;
+        const row = existingRows[i];
 
-      // Click to select
-      row.addEventListener('click', () => selectStock(name));
+        // Update price
+        const priceEl = row.querySelector('.stock-price');
+        if (priceEl) priceEl.textContent = '$' + stock.price.toFixed(2);
 
-      // Header line: name, sparkline, price, change
-      const header = document.createElement('div');
-      header.className = 'stock-header';
+        // Update change
+        const changeEl = row.querySelector('.stock-change');
+        if (changeEl) {
+          changeEl.className = 'stock-change ' + (stock.change > 0 ? 'up' : stock.change < 0 ? 'down' : 'flat');
+          changeEl.textContent = (stock.change >= 0 ? '+' : '') + stock.change.toFixed(1) + '%';
+        }
 
-      const nameEl = document.createElement('span');
-      nameEl.className = 'stock-name';
-      nameEl.textContent = name;
-      header.appendChild(nameEl);
+        // Update analyst badge (only if player has analyst prediction for this stock)
+        let badgeEl = row.querySelector('.stock-value-badge');
+        const analystRow = myAnalystPredictions[name];
+        if (analystRow) {
+          const vdRow = ((stock.price - analystRow.estimatedValue) / analystRow.estimatedValue) * 100;
+          if (Math.abs(vdRow) > 5) {
+            if (!badgeEl) {
+              badgeEl = document.createElement('span');
+              badgeEl.className = 'stock-value-badge';
+              const hdr = row.querySelector('.stock-header');
+              if (hdr) hdr.appendChild(badgeEl);
+            }
+            badgeEl.textContent = vdRow > 0 ? 'OVER' : 'UNDER';
+            badgeEl.style.color = vdRow > 0 ? '#E74856' : '#538d4e';
+          } else if (badgeEl) {
+            badgeEl.remove();
+          }
+        } else if (badgeEl) {
+          badgeEl.remove();
+        }
 
-      if (stock.history && stock.history.length > 1) {
-        const spark = document.createElement('canvas');
-        spark.className = 'stock-sparkline';
-        spark.width = 120; spark.height = 40;
-        drawSparkline(spark, stock.history);
-        header.appendChild(spark);
+        // Update sparkline
+        const spark = row.querySelector('.stock-sparkline');
+        if (spark && stock.history && stock.history.length > 1) {
+          drawSparkline(spark, stock.history);
+        }
+
+        // Update holdings
+        let holdEl = row.querySelector('.stock-holdings');
+        if (myShares > 0) {
+          if (!holdEl) {
+            holdEl = document.createElement('div');
+            holdEl.className = 'stock-holdings';
+            row.appendChild(holdEl);
+          }
+          holdEl.innerHTML = '<strong>' + myShares + '</strong> shares (<span class="stock-portfolio-value">$' + holdingValue.toFixed(2) + '</span>)';
+        } else if (holdEl) {
+          holdEl.remove();
+        }
+      });
+    } else {
+      // Full rebuild needed (stocks added/removed)
+      stockList.innerHTML = '';
+      if (stockDetail) stockDetail.style.display = 'none';
+
+      names.forEach(name => {
+        const stock = currentStockPrices[name];
+        const myShares = myPortfolio[name] || 0;
+        const holdingValue = myShares * stock.price;
+        totalPortfolioValue += holdingValue;
+
+        const row = document.createElement('div');
+        row.className = 'stock-row';
+        row.setAttribute('data-name', name);
+        row.addEventListener('click', () => selectStock(name));
+
+        const header = document.createElement('div');
+        header.className = 'stock-header';
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'stock-name';
+        nameEl.textContent = name;
+        header.appendChild(nameEl);
+
+        if (stock.history && stock.history.length > 1) {
+          const spark = document.createElement('canvas');
+          spark.className = 'stock-sparkline';
+          spark.width = 120; spark.height = 40;
+          drawSparkline(spark, stock.history);
+          header.appendChild(spark);
+        }
+
+        const priceEl = document.createElement('span');
+        priceEl.className = 'stock-price';
+        priceEl.textContent = '$' + stock.price.toFixed(2);
+        header.appendChild(priceEl);
+
+        const changeEl = document.createElement('span');
+        changeEl.className = 'stock-change ' + (stock.change > 0 ? 'up' : stock.change < 0 ? 'down' : 'flat');
+        changeEl.textContent = (stock.change >= 0 ? '+' : '') + stock.change.toFixed(1) + '%';
+        header.appendChild(changeEl);
+
+        // Analyst badge (only if player has analyst prediction for this stock)
+        const analystRow2 = myAnalystPredictions[name];
+        if (analystRow2) {
+          const vdRow2 = ((stock.price - analystRow2.estimatedValue) / analystRow2.estimatedValue) * 100;
+          if (Math.abs(vdRow2) > 5) {
+            const badgeEl2 = document.createElement('span');
+            badgeEl2.className = 'stock-value-badge';
+            badgeEl2.textContent = vdRow2 > 0 ? 'OVER' : 'UNDER';
+            badgeEl2.style.color = vdRow2 > 0 ? '#E74856' : '#538d4e';
+            header.appendChild(badgeEl2);
+          }
+        }
+
+        row.appendChild(header);
+
+        if (myShares > 0) {
+          const holdEl = document.createElement('div');
+          holdEl.className = 'stock-holdings';
+          holdEl.innerHTML = '<strong>' + myShares + '</strong> shares (<span class="stock-portfolio-value">$' + holdingValue.toFixed(2) + '</span>)';
+          row.appendChild(holdEl);
+        }
+
+        stockList.appendChild(row);
+      });
+    }
+
+    // Update detail panel WITHOUT rebuilding trade controls
+    if (selectedStock && currentStockPrices[selectedStock]) {
+      if (canUpdateInPlace && stockDetail && stockDetail.style.display !== 'none') {
+        // Update detail header and chart in-place, preserve trade inputs
+        const stock = currentStockPrices[selectedStock];
+        const myShares = myPortfolio[selectedStock] || 0;
+        const nameEl = document.getElementById('stockDetailName');
+        if (nameEl) {
+          const ai2 = myAnalystPredictions[selectedStock];
+          let ah2 = '';
+          if (ai2) {
+            const ev2 = ai2.estimatedValue;
+            const vd2 = ((stock.price - ev2) / ev2) * 100;
+            const vl2 = Math.abs(vd2) > 5
+              ? (vd2 > 0 ? '<span style="color:#E74856;font-weight:700;">OVERVALUED</span>' : '<span style="color:#538d4e;font-weight:700;">UNDERVALUED</span>')
+              : '<span style="color:var(--text-muted);">FAIR</span>';
+            ah2 = `<div style="margin-top:6px;font-size:0.8rem;color:var(--text-muted);display:flex;gap:12px;align-items:center;">
+              <span>Est. Fair Value: <strong style="color:var(--text);">$${ev2.toFixed(2)}</strong></span>
+              ${vl2}
+              <span style="opacity:0.6;">${ai2.spinsLeft} spin${ai2.spinsLeft !== 1 ? 's' : ''} left</span>
+            </div>`;
+          }
+          nameEl.innerHTML = `
+            <h3 style="margin:0 0 8px 0;font-size:1.3rem;">${selectedStock}</h3>
+            <span class="stock-price" style="font-size:1.2rem;">$${stock.price.toFixed(2)}</span>
+            <span class="stock-change ${stock.change > 0 ? 'up' : stock.change < 0 ? 'down' : 'flat'}" style="font-size:0.9rem;margin-left:8px;">
+              ${stock.change >= 0 ? '+' : ''}${stock.change.toFixed(1)}%
+            </span>
+            ${ah2}
+            ${myShares > 0 ? `<div style="margin-top:8px;font-size:0.85rem;color:var(--text-muted);">You own <strong>${myShares}</strong> shares (worth <span style="color:#F5A623;">$${(myShares * stock.price).toFixed(2)}</span>)</div>` : ''}
+          `;
+        }
+        // Update chart
+        const canvas = document.getElementById('stockDetailChart');
+        if (canvas) drawLargeChart(canvas, stock.history);
+        // Update cost preview
+        const costPreview = document.getElementById('detailCostPreview');
+        if (costPreview) costPreview.textContent = '= $' + (stock.price * currentShareCount).toFixed(2);
+        // Update sell button state
+        const sellBtn = document.getElementById('detailSellBtn');
+        if (sellBtn) sellBtn.disabled = myShares <= 0;
+        // Highlight selected row
+        stockList.querySelectorAll('.stock-row').forEach(r => r.classList.remove('selected'));
+        const selectedRow = stockList.querySelector('.stock-row[data-name="' + selectedStock + '"]');
+        if (selectedRow) selectedRow.classList.add('selected');
+      } else {
+        selectStock(selectedStock);
       }
-
-      const priceEl = document.createElement('span');
-      priceEl.className = 'stock-price';
-      priceEl.textContent = '$' + stock.price.toFixed(2);
-      header.appendChild(priceEl);
-
-      const changeEl = document.createElement('span');
-      changeEl.className = 'stock-change ' + (stock.change > 0 ? 'up' : stock.change < 0 ? 'down' : 'flat');
-      changeEl.textContent = (stock.change >= 0 ? '+' : '') + stock.change.toFixed(1) + '%';
-      header.appendChild(changeEl);
-
-      row.appendChild(header);
-
-      // Holdings info (compact)
-      if (myShares > 0) {
-        const holdEl = document.createElement('div');
-        holdEl.className = 'stock-holdings';
-        holdEl.innerHTML = '<strong>' + myShares + '</strong> shares (<span class="stock-portfolio-value">$' + holdingValue.toFixed(2) + '</span>)';
-        row.appendChild(holdEl);
-      }
-
-      stockList.appendChild(row);
-    });
-
-    // Auto-select first stock if none selected
-    if (names.length > 0 && (!selectedStock || !currentStockPrices[selectedStock])) {
+    } else if (names.length > 0) {
       selectStock(names[0]);
-    } else if (selectedStock && currentStockPrices[selectedStock]) {
-      selectStock(selectedStock);
     }
 
     const statusEl = document.getElementById('marketStatus');
@@ -3584,8 +4897,411 @@
       statusEl.textContent = '$' + totalPortfolioValue.toFixed(0) + ' portfolio';
     }
 
-    // Render positions panel
     renderPositionsPanel();
+  }
+
+  let currentMarketEvents = [];
+  let lastTickerEventIds = ''; // Track event IDs to avoid unnecessary rebuilds
+
+  function updateInfoBarVisibility() {
+    const infoBar = document.getElementById('infoBar');
+    const readyBar = document.getElementById('readyBar');
+    const hasReady = readyBar && readyBar.classList.contains('visible');
+    const hasTicker = mp.connected && (currentMarketEvents.length > 0 || ticker.running);
+    if (infoBar) {
+      if (hasTicker || hasReady) infoBar.classList.add('visible');
+      else infoBar.classList.remove('visible');
+    }
+  }
+
+  // Filler news headlines — purely cosmetic, no price impact
+  const FILLER_HEADLINES = [
+    { text: 'INTERN SPILLS COFFEE ON TRADING TERMINAL — MARKETS BRIEFLY PAUSE', style: 'neutral' },
+    { text: 'LOCAL MAN CLAIMS HE "CALLED IT" AFTER EVERY SINGLE TRADE', style: 'neutral' },
+    { text: 'BREAKING: STOCK MARKET EXISTS, SOURCES CONFIRM', style: 'neutral' },
+    { text: 'ANALYSTS DISAGREE ON EVERYTHING, AGREE TO DISAGREE', style: 'neutral' },
+    { text: 'TRADER ACCIDENTALLY BUYS 10,000 SHARES WHILE SNEEZING', style: 'neutral' },
+    { text: 'WALL STREET LUNCH ORDERS AT ALL-TIME HIGH — SANDWICH INDEX SOARS', style: 'neutral' },
+    { text: 'CEO SPOTTED GOOGLING "HOW TO CEO" DURING BOARD MEETING', style: 'neutral' },
+    { text: 'BREAKING: MONEY STILL EXISTS', style: 'neutral' },
+    { text: 'FINANCIAL ADVISOR RECOMMENDS "JUST VIBES" AS INVESTMENT STRATEGY', style: 'neutral' },
+    { text: 'MARKET OPEN: NUMBERS ARE DOING THINGS AGAIN', style: 'neutral' },
+    { text: 'ECONOMISTS PREDICT FUTURE WILL HAPPEN "AT SOME POINT"', style: 'neutral' },
+    { text: 'GUY WHO SOLD EARLY IS DOING FINE, THANKS FOR ASKING', style: 'neutral' },
+    { text: 'TRADING FLOOR VENDING MACHINE RAISES PRICES — OUTRAGE ENSUES', style: 'neutral' },
+    { text: 'STUDY: 90% OF DAY TRADERS WOULD HAVE MADE MORE MONEY NAPPING', style: 'neutral' },
+    { text: 'STOCKS GO UP, STOCKS GO DOWN — YOU CAN\'T EXPLAIN THAT', style: 'neutral' },
+    { text: 'CHART PATTERN EXPERTS SEE A DRAGON IN TODAY\'S CANDLESTICKS', style: 'neutral' },
+    { text: 'INVESTOR HOLDS THROUGH DIP, CALLS IT "DIAMOND HANDS", CRIES QUIETLY', style: 'neutral' },
+    { text: 'REPORT: MOST STOCK TIPS COME FROM "A GUY I KNOW"', style: 'neutral' },
+    { text: 'HEDGE FUND MANAGER ACHIEVES PERFECT 0% RETURN — "EXACTLY AS PLANNED"', style: 'neutral' },
+    { text: 'MARKET RALLY CREDITED TO "GOOD VIBES AND NOTHING ELSE"', style: 'neutral' },
+    { text: 'CRYPTO BRO REMINDS EVERYONE HE\'S STILL EARLY', style: 'neutral' },
+    { text: 'BLOOMBERG TERMINAL ACHIEVES SENTIENCE, IMMEDIATELY QUITS', style: 'neutral' },
+    { text: 'BREAKING: LINE ON GRAPH MOVED TO THE RIGHT', style: 'neutral' },
+    { text: 'SOURCES: "BUY LOW SELL HIGH" STRATEGY HARDER THAN IT SOUNDS', style: 'neutral' },
+    { text: 'TRADER REFRESHES PORTFOLIO 47 TIMES IN ONE MINUTE — NEW RECORD', style: 'neutral' },
+    { text: 'OFFICE PLANTS ON TRADING FLOOR OUTPERFORM MOST FUNDS', style: 'neutral' },
+    { text: 'MARKET VOLATILITY BLAMED ON "MERCURY IN RETROGRADE"', style: 'neutral' },
+    { text: 'FORTUNE COOKIE MORE ACCURATE THAN ANALYST PREDICTIONS', style: 'neutral' },
+    { text: 'BREAKING: PRINTER STILL GOES BRRR', style: 'neutral' },
+    { text: 'RETIREMENT PLAN NOW JUST A SCREENSHOT OF OLD PORTFOLIO VALUE', style: 'neutral' },
+  ];
+  let fillerSeed = Math.floor(Math.random() * FILLER_HEADLINES.length);
+
+  // ── Ticker Engine ──
+  // Queue-based recycling: each item is an independently positioned DOM node.
+  // Items scroll left. When one exits the left edge, it's repositioned after
+  // the rightmost item. Adding/removing items never affects existing positions.
+  // No content duplication, no wrap-point logic, no DOM rebuilds.
+
+  const TICKER_SPEED = 120;  // px/sec
+  const TICKER_GAP = 16;     // px between items
+  const newTickerEventIds = new Set(); // event keys that haven't completed first pass yet
+  let robberyTickerCounter = 0; // unique key counter for robbery ticker items
+
+  // Single ticker state — main screen is the source of truth.
+  // Market popup mirrors it when visible.
+  const ticker = {
+    track: null,            // main track DOM element (resolved lazily)
+    queue: [],              // [{key, element, x, width, sepX, sepWidth, separator, dying}, ...]
+    lastTime: 0,
+    running: false,
+  };
+
+  function getMainTrack() {
+    if (!ticker.track) ticker.track = document.getElementById('mainTickerTrack');
+    return ticker.track;
+  }
+
+  // Build a ticker item DOM element (absolutely positioned)
+  function createTickerItemEl(data) {
+    const span = document.createElement('span');
+    if (data.isRobbery) {
+      span.className = 'news-ticker-item robbery ticker-new';
+      span.innerHTML = `<span class="ticker-indicator">\u{1F6A8}</span><span>${data.text}</span>`;
+    } else if (data.isFiller) {
+      span.className = 'news-ticker-item';
+      span.style.color = 'rgba(255,255,255,0.55)';
+      span.innerHTML = `<span class="ticker-indicator" style="color:rgba(255,255,255,0.3);">\u25C6</span><span>${data.text}</span>`;
+    } else {
+      const ev = data.ev;
+      const cls = ev.sentiment > 0 ? 'bullish' : 'bearish';
+      const indicator = ev.sentiment > 0 ? '\u25B2' : '\u25BC';
+      span.className = 'news-ticker-item ' + cls;
+      // Add ticker-new class if this is a freshly appeared event
+      if (newTickerEventIds.has(data.key)) span.classList.add('ticker-new');
+      span.innerHTML = `<span class="ticker-indicator">${indicator}</span><span class="ticker-stock">${ev.stockName}</span><span>${ev.headline.replace(ev.stockName, '').trim()}</span>`;
+    }
+    return span;
+  }
+
+  function createSeparatorEl() {
+    const sep = document.createElement('span');
+    sep.className = 'news-ticker-separator';
+    sep.textContent = '\u2022';
+    return sep;
+  }
+
+  let tickerDesiredKeys = '';
+
+  // Add a new item, positioned after the rightmost element
+  function tickerAddItem(data) {
+    const track = getMainTrack();
+    if (!track) return;
+
+    // Create separator + item pair
+    const sep = createSeparatorEl();
+    const el = createTickerItemEl(data);
+    track.appendChild(sep);
+    track.appendChild(el);
+
+    // Measure widths (need to be in DOM first)
+    const sepW = sep.offsetWidth || 10;
+    const elW = el.offsetWidth || 200;
+
+    // Position after rightmost existing item, or at container right edge
+    const containerW = track.parentElement ? track.parentElement.clientWidth : 800;
+    let startX;
+    if (ticker.queue.length > 0) {
+      const last = ticker.queue[ticker.queue.length - 1];
+      startX = last.x + last.width + TICKER_GAP;
+      // Make sure new items enter from at least the right edge
+      if (startX < containerW) startX = containerW;
+    } else {
+      startX = containerW;
+    }
+
+    const sepX = startX;
+    const itemX = sepX + sepW;
+    sep.style.transform = `translateX(${sepX}px)`;
+    el.style.transform = `translateX(${itemX}px)`;
+
+    ticker.queue.push({
+      key: data.key,
+      element: el,
+      separator: sep,
+      x: itemX,
+      width: elW,
+      sepX: sepX,
+      sepWidth: sepW,
+    });
+  }
+
+  // Diff desired items against current queue and apply add/remove
+  function tickerSync(desired) {
+    const currentKeys = new Set(ticker.queue.filter(q => !q.dying).map(q => q.key));
+    const desiredKeys = new Set(desired.map(d => d.key));
+
+    // Mark items no longer desired as dying (they'll scroll off naturally)
+    for (const item of ticker.queue) {
+      if (!item.dying && !desiredKeys.has(item.key)) {
+        item.dying = true;
+      }
+    }
+
+    // Add items that are new
+    for (const d of desired) {
+      if (!currentKeys.has(d.key)) {
+        tickerAddItem(d);
+      }
+    }
+  }
+
+  // Add a one-off robbery event to the ticker (scrolls through twice then dies)
+  function addRobberyTickerItem(text) {
+    const key = 'rob_' + (++robberyTickerCounter);
+    const data = { key, text, isRobbery: true };
+    tickerAddItem(data);
+    // Mark it to die after 2 passes (it will get recycled once, then die on second exit)
+    const item = ticker.queue.find(q => q.key === key);
+    if (item) item.passesLeft = 2;
+    // Start ticker if not running
+    if (!ticker.running) {
+      ticker.running = true;
+      ticker.lastTime = performance.now();
+      updateInfoBarVisibility();
+    }
+  }
+
+  // Animation loop: advance all items, recycle those that exit left
+  function tickerAnimate(now) {
+    if (!ticker.running || ticker.queue.length === 0) {
+      requestAnimationFrame(tickerAnimate);
+      return;
+    }
+    const track = getMainTrack();
+    if (!track || !track.parentElement) {
+      requestAnimationFrame(tickerAnimate);
+      return;
+    }
+    const containerW = track.parentElement.clientWidth;
+    if (containerW <= 0) {
+      requestAnimationFrame(tickerAnimate);
+      return;
+    }
+
+    const dt = ticker.lastTime ? (now - ticker.lastTime) / 1000 : 0;
+    ticker.lastTime = now;
+    // Cap dt to avoid huge jumps if tab was backgrounded
+    const clampedDt = Math.min(dt, 0.1);
+    const dx = TICKER_SPEED * clampedDt;
+
+    // Move all items left
+    for (const item of ticker.queue) {
+      item.x -= dx;
+      item.sepX -= dx;
+    }
+
+    // Process items that have exited the left edge
+    while (ticker.queue.length > 0) {
+      const first = ticker.queue[0];
+      if (first.x + first.width < -50) {
+        if (first.dying) {
+          // Dying item exited — remove from DOM entirely
+          if (first.element.parentNode) first.element.parentNode.removeChild(first.element);
+          if (first.separator.parentNode) first.separator.parentNode.removeChild(first.separator);
+          ticker.queue.shift();
+        } else if (first.passesLeft != null) {
+          // Limited-pass item (robbery): count down passes, die when exhausted
+          first.passesLeft--;
+          if (first.passesLeft <= 0) {
+            first.dying = true;
+            // Let it scroll off naturally — don't remove yet, just mark dying
+          } else {
+            const last = ticker.queue[ticker.queue.length - 1];
+            let newSepX = last.x + last.width + TICKER_GAP;
+            if (newSepX < containerW) newSepX = containerW;
+            first.sepX = newSepX;
+            first.x = newSepX + first.sepWidth;
+            if (first.element.classList.contains('ticker-new')) first.element.classList.remove('ticker-new');
+            ticker.queue.push(ticker.queue.shift());
+          }
+        } else {
+          // Live item — recycle: move to after the rightmost (or right edge of viewport)
+          const last = ticker.queue[ticker.queue.length - 1];
+          let newSepX = last.x + last.width + TICKER_GAP;
+          // Ensure item enters from at least the right edge
+          if (newSepX < containerW) newSepX = containerW;
+          const newX = newSepX + first.sepWidth;
+          first.sepX = newSepX;
+          first.x = newX;
+          // Remove red highlight after first pass
+          if (first.element.classList.contains('ticker-new')) {
+            first.element.classList.remove('ticker-new');
+            newTickerEventIds.delete(first.key);
+          }
+          ticker.queue.push(ticker.queue.shift());
+        }
+      } else {
+        break;
+      }
+    }
+
+    // Ensure we fill the viewport — if rightmost item doesn't extend past right edge,
+    // recycle non-dying items from front to fill the gap
+    const liveItems = ticker.queue.filter(q => !q.dying);
+    if (liveItems.length > 0) {
+      const last = ticker.queue[ticker.queue.length - 1];
+      const rightEdge = last.x + last.width;
+      if (rightEdge < containerW - 50) {
+        // Find the first non-dying item that's off-screen left
+        const firstLiveIdx = ticker.queue.findIndex(q => !q.dying && q.x + q.width < 0);
+        if (firstLiveIdx >= 0) {
+          const item = ticker.queue[firstLiveIdx];
+          // Handle limited-pass items
+          if (item.passesLeft != null) {
+            item.passesLeft--;
+            if (item.passesLeft <= 0) { item.dying = true; return; }
+          }
+          if (item.element.classList.contains('ticker-new')) {
+            item.element.classList.remove('ticker-new');
+            newTickerEventIds.delete(item.key);
+          }
+          const newSepX = rightEdge + TICKER_GAP;
+          const newX = newSepX + item.sepWidth;
+          item.sepX = newSepX;
+          item.x = newX;
+          // Move to end of queue
+          ticker.queue.splice(firstLiveIdx, 1);
+          ticker.queue.push(item);
+        }
+      }
+    }
+
+    // Apply transforms (write-only, no DOM reads in main loop)
+    for (const item of ticker.queue) {
+      item.separator.style.transform = `translateX(${item.sepX}px)`;
+      item.element.style.transform = `translateX(${item.x}px)`;
+    }
+
+    // Mirror to market popup ticker if visible
+    tickerMirrorToMarket();
+
+    requestAnimationFrame(tickerAnimate);
+  }
+
+  // Mirror main ticker positions to market popup (only when popup is visible)
+  let marketTickerEls = {}; // key → {element, separator}
+  function tickerMirrorToMarket() {
+    const popup = document.getElementById('popup-market');
+    if (!popup || !popup.classList.contains('show')) return;
+    const mktTrack = document.getElementById('marketTickerTrack');
+    if (!mktTrack) return;
+
+    const activeKeys = new Set();
+    for (const item of ticker.queue) {
+      activeKeys.add(item.key);
+      let mir = marketTickerEls[item.key];
+      if (!mir) {
+        // Create mirror elements
+        const sep = createSeparatorEl();
+        const el = createTickerItemEl(
+          item.element.classList.contains('bullish') || item.element.classList.contains('bearish')
+            ? { isFiller: false, ev: { sentiment: item.element.classList.contains('bullish') ? 1 : -1, stockName: '', headline: '' } }
+            : { isFiller: true, text: '' }
+        );
+        // Clone inner HTML from main ticker item for correct content
+        el.innerHTML = item.element.innerHTML;
+        el.className = item.element.className;
+        if (item.element.style.color) el.style.color = item.element.style.color;
+        mktTrack.appendChild(sep);
+        mktTrack.appendChild(el);
+        mir = { element: el, separator: sep };
+        marketTickerEls[item.key] = mir;
+      }
+      mir.separator.style.transform = `translateX(${item.sepX}px)`;
+      mir.element.style.transform = `translateX(${item.x}px)`;
+    }
+
+    // Remove mirror elements for items no longer in queue
+    for (const key of Object.keys(marketTickerEls)) {
+      if (!activeKeys.has(key)) {
+        const mir = marketTickerEls[key];
+        if (mir.element.parentNode) mir.element.parentNode.removeChild(mir.element);
+        if (mir.separator.parentNode) mir.separator.parentNode.removeChild(mir.separator);
+        delete marketTickerEls[key];
+      }
+    }
+  }
+
+  requestAnimationFrame(tickerAnimate);
+
+  function renderNewsTicker(events) {
+    currentMarketEvents = events || [];
+
+    if (!mp.connected) {
+      if (lastTickerEventIds !== '') {
+        // Clear ticker
+        ticker.queue = [];
+        ticker.running = false;
+        ticker.lastTime = 0;
+        const mt = document.getElementById('mainTickerTrack');
+        const mkt = document.getElementById('marketTickerTrack');
+        if (mt) mt.innerHTML = '';
+        if (mkt) mkt.innerHTML = '';
+        marketTickerEls = {};
+        lastTickerEventIds = '';
+        tickerDesiredKeys = '';
+      }
+      updateInfoBarVisibility();
+      return;
+    }
+
+    // Build desired item list: real events + filler
+    const MIN_TICKER_ITEMS = 6;
+    const fillerCount = Math.max(0, MIN_TICKER_ITEMS - currentMarketEvents.length);
+
+    const eventIds = currentMarketEvents.map(e => e.id).join(',');
+    if (eventIds !== lastTickerEventIds) {
+      fillerSeed = (fillerSeed + 3) % FILLER_HEADLINES.length;
+      lastTickerEventIds = eventIds;
+    }
+
+    const desired = [];
+    currentMarketEvents.forEach(ev => {
+      desired.push({ key: 'ev_' + ev.id, ev, isFiller: false });
+    });
+    for (let i = 0; i < fillerCount; i++) {
+      const f = FILLER_HEADLINES[(fillerSeed + i) % FILLER_HEADLINES.length];
+      desired.push({ key: 'fill_' + i, text: f.text, isFiller: true });
+    }
+
+    const newKeys = desired.map(d => d.key).join(',');
+    if (newKeys === tickerDesiredKeys) return; // no change
+
+    tickerDesiredKeys = newKeys;
+
+    updateInfoBarVisibility();
+
+    // Sync the main ticker (market popup mirrors automatically)
+    tickerSync(desired);
+
+    // Start if not running
+    if (!ticker.running) {
+      ticker.running = true;
+      ticker.lastTime = performance.now();
+    }
   }
 
   function renderPositionsPanel() {
@@ -3756,34 +5472,69 @@
   const statusText = document.getElementById('statusText');
   const spinInitiator = document.getElementById('spinInitiator');
 
-  // Tab switching for connection overlay
-  document.querySelectorAll('.conn-tabs button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.conn-tabs button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('hostForm').classList.toggle('active', btn.dataset.mode === 'host');
-      document.getElementById('joinForm').classList.toggle('active', btn.dataset.mode === 'join');
-      connError.textContent = '';
-    });
-  });
+  const playerSelect = document.getElementById('playerSelect');
+  const newNameInput = document.getElementById('newNameInput');
 
-  document.getElementById('startHostBtn').addEventListener('click', () => {
-    const name = document.getElementById('hostNameInput').value.trim();
-    if (!name) { connError.textContent = 'Please enter your name'; return; }
-    const port = parseInt(document.getElementById('portInput').value) || 8080;
-    // Connect to self (server must already be running)
-    connectToServer('localhost', port, name);
+  // Fetch existing players and populate dropdown
+  function loadPlayerList() {
+    playerSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
+    fetch('/api/players')
+      .then(r => r.json())
+      .then(names => {
+        playerSelect.innerHTML = '';
+        if (names.length > 0) {
+          names.forEach(n => {
+            const opt = document.createElement('option');
+            opt.value = n; opt.textContent = n;
+            playerSelect.appendChild(opt);
+          });
+        }
+        const newOpt = document.createElement('option');
+        newOpt.value = '__new__'; newOpt.textContent = '+ New Player';
+        playerSelect.appendChild(newOpt);
+
+        // Auto-select last used name from localStorage
+        const last = localStorage.getItem('wheelSpinName');
+        if (last && names.includes(last)) {
+          playerSelect.value = last;
+        } else if (names.length > 0) {
+          playerSelect.selectedIndex = 0;
+        }
+      })
+      .catch(() => {
+        playerSelect.innerHTML = '';
+        const newOpt = document.createElement('option');
+        newOpt.value = '__new__'; newOpt.textContent = '+ New Player';
+        playerSelect.appendChild(newOpt);
+      });
+  }
+  loadPlayerList();
+
+  // Show/hide new name input based on selection
+  playerSelect.addEventListener('change', () => {
+    newNameInput.style.display = playerSelect.value === '__new__' ? '' : 'none';
+    if (playerSelect.value === '__new__') newNameInput.focus();
+    connError.textContent = '';
   });
 
   document.getElementById('connectBtn').addEventListener('click', () => {
-    const name = document.getElementById('joinNameInput').value.trim();
-    if (!name) { connError.textContent = 'Please enter your name'; return; }
-    const addr = document.getElementById('joinAddress').value.trim();
-    if (!addr) { connError.textContent = 'Please enter the server address'; return; }
-    const parts = addr.split(':');
-    const host = parts[0];
-    const port = parseInt(parts[1]) || 8080;
+    let name;
+    if (playerSelect.value === '__new__') {
+      name = newNameInput.value.trim();
+      if (!name) { connError.textContent = 'Please enter a name'; return; }
+    } else {
+      name = playerSelect.value;
+      if (!name) { connError.textContent = 'Please select a player'; return; }
+    }
+    localStorage.setItem('wheelSpinName', name);
+    const host = window.location.hostname || 'localhost';
+    const port = parseInt(window.location.port) || 8080;
     connectToServer(host, port, name);
+  });
+
+  // Allow pressing Enter in new name input to join
+  newNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('connectBtn').click();
   });
 
   document.getElementById('disconnectBtn').addEventListener('click', () => {
@@ -3853,7 +5604,11 @@
     statusBar.classList.remove('visible');
     leftPanel.classList.remove('visible');
     readyBar.classList.remove('visible');
+    updateInfoBarVisibility();
     updateConfigLock();
+    loadPlayerList();
+    newNameInput.style.display = 'none';
+    newNameInput.value = '';
   }
 
   function hideConnectionScreen() {
@@ -3871,6 +5626,28 @@
         mp.isHost = p.isHost;
         mp.playerName = p.name;
         mp.players = p.players || [];
+        if (p.upgradeDefs) upgradeDefs = p.upgradeDefs;
+        if (p.activeRobberies) {
+          activeRobberyList = p.activeRobberies.map(r => ({
+            robberyId: r.id,
+            attackerName: r.attackerName,
+            targetName: r.targetName,
+            attackLevel: r.attackLevel,
+            defenseLevel: r.defenseLevel,
+            wordLength: r.wordLength,
+            durationMs: r.durationMs || 60000,
+            resolveAt: r.resolveAt,
+            maxGuesses: r.maxGuesses || 6,
+            victimOnline: r.victimOnline,
+            guesses: r.guesses || [],
+          }));
+          // If I'm a victim in an active Wordle robbery, reopen overlay
+          const myDefense = activeRobberyList.find(r => r.targetName === mp.playerName && r.victimOnline);
+          if (myDefense) showWordleOverlay(myDefense);
+        }
+        if (p.robberyCooldowns) {
+          myRobberyCooldown = p.robberyCooldowns[mp.playerName] || 0;
+        }
 
         // Apply remote config if we're joining an existing room
         if (p.config) {
@@ -3900,6 +5677,7 @@
         rebuildShopUI();
         rebuildHotbar();
         readyBar.classList.add('visible');
+        updateInfoBarVisibility();
         refreshBoostPanel();
         if (betHint) betHint.style.display = '';
         mainWheel.canvas.style.cursor = 'pointer';
@@ -3955,6 +5733,7 @@
         updatePlayerListUI();
         rebuildShopUI();
         rebuildHotbar();
+        if (document.getElementById('popup-upgrades').classList.contains('show')) rebuildUpgradesUI();
         break;
       }
 
@@ -4023,15 +5802,15 @@
         break;
       }
 
-      case 'boost_reverted': {
-        // Our personal boost was reverted after spin
-        const br = msg.payload;
+      case 'boosts_decayed': {
+        // Boosts were decayed by server (multiplied by decay factor)
+        const bd = msg.payload;
         const wc3 = config.wheels[config.activeWheelId];
         if (wc3 && wc3.entryWeights) {
-          const key = br.weightKey;
-          if (wc3.entryWeights[key] != null) {
-            wc3.entryWeights[key] -= br.amount;
-            if (Math.abs(wc3.entryWeights[key]) < 0.001) delete wc3.entryWeights[key];
+          // Apply decay factor to all boosted weights
+          for (const key of Object.keys(wc3.entryWeights)) {
+            wc3.entryWeights[key] *= bd.factor;
+            if (Math.abs(wc3.entryWeights[key]) < 0.01) delete wc3.entryWeights[key];
           }
           syncWheelConfig(mainWheel, wc3);
           mainWheel.invalidateLayout();
@@ -4065,6 +5844,7 @@
       case 'spin_start': {
         hideReadyPhase();
         handleRemoteSpin(msg.payload);
+        if (myRobberyCooldown > 0) myRobberyCooldown--;
         break;
       }
 
@@ -4081,6 +5861,30 @@
         currentStockPrices = msg.payload.prices || {};
         currentPortfolios = msg.payload.portfolios || {};
         currentCostBases = msg.payload.costBases || {};
+        rebuildMarketUI();
+        renderNewsTicker(msg.payload.events || []);
+        break;
+      }
+
+      case 'market_event': {
+        // New events will appear in ticker via next stock_prices update
+        // Mark the event ID as new so it gets red highlight on first pass
+        const ev = msg.payload.event;
+        if (ev) newTickerEventIds.add('ev_' + ev.id);
+        break;
+      }
+
+      case 'analyst_activated': {
+        const aa = msg.payload;
+        myAnalystPredictions[aa.stockName] = { estimatedValue: aa.estimatedValue, spinsLeft: aa.spinsLeft };
+        showToast('Analyst report for ' + aa.stockName + ' activated (' + aa.spinsLeft + ' spins)', 'ANALYST');
+        setTimeout(hideToast, 3000);
+        rebuildMarketUI();
+        break;
+      }
+
+      case 'analyst_update': {
+        myAnalystPredictions = msg.payload;
         rebuildMarketUI();
         break;
       }
@@ -4178,6 +5982,146 @@
         spinBtn.disabled = false;
         showToast('Spin rejected', msg.payload.reason === 'already_spinning' ? 'Already spinning!' : 'Error');
         setTimeout(hideToast, 2000);
+        break;
+      }
+
+      case 'upgrade_purchased': {
+        const up = msg.payload;
+        const defName = upgradeDefs[up.upgradeId] ? upgradeDefs[up.upgradeId].name : up.upgradeId;
+        showToast(up.buyerName + ' upgraded ' + defName + ' to Lv' + up.newLevel, 'Upgrade');
+        setTimeout(hideToast, 3000);
+        if (document.getElementById('popup-upgrades').classList.contains('show')) rebuildUpgradesUI();
+        break;
+      }
+
+      case 'robbery_started': {
+        const rs = msg.payload;
+        const robberyEntry = {
+          robberyId: rs.robberyId,
+          attackerName: rs.attackerName,
+          targetName: rs.targetName,
+          attackLevel: rs.attackLevel,
+          defenseLevel: rs.defenseLevel,
+          wordLength: rs.wordLength,
+          durationMs: rs.durationMs,
+          resolveAt: Date.now() + rs.durationMs,
+          maxGuesses: rs.maxGuesses || 6,
+          victimOnline: rs.victimOnline,
+          guesses: [],
+        };
+        activeRobberyList.push(robberyEntry);
+        if (rs.attackerName === mp.playerName) {
+          myRobberyCooldown = 5;
+        }
+        // If I'm the victim and online, show Wordle overlay
+        if (rs.targetName === mp.playerName && rs.victimOnline) {
+          showWordleOverlay(robberyEntry);
+        } else if (rs.targetName === mp.playerName) {
+          showToast(rs.attackerName + ' is robbing you!', 'Robbery Alert');
+          setTimeout(hideToast, 4000);
+        } else if (rs.attackerName === mp.playerName) {
+          showToast('Robbery sent! ' + rs.targetName + ' has 60s to guess your word.', 'Robbery');
+          setTimeout(hideToast, 3000);
+        } else {
+          // Spectators see it in the ticker instead of a toast
+          addRobberyTickerItem(rs.attackerName + ' is robbing ' + rs.targetName + '!');
+        }
+        if (document.getElementById('popup-upgrades').classList.contains('show')) rebuildUpgradesUI();
+        break;
+      }
+
+      case 'robbery_guess_result': {
+        const gr = msg.payload;
+        if (!gr.valid) {
+          // Invalid guess feedback (only sent to guesser)
+          if (activeWordleRobbery && activeWordleRobbery.robberyId === gr.robberyId) {
+            const msgEl = document.getElementById('wordleMessage');
+            if (msgEl) msgEl.textContent = gr.message || 'Invalid guess';
+          }
+          break;
+        }
+        // Update active robbery guesses
+        const rob = activeRobberyList.find(r => r.robberyId === gr.robberyId);
+        if (rob) {
+          if (!rob.guesses) rob.guesses = [];
+          rob.guesses.push({ guess: gr.guess, feedback: gr.feedback, guessNum: gr.guessNum });
+        }
+        // If I'm the victim, update my Wordle overlay
+        if (activeWordleRobbery && activeWordleRobbery.robberyId === gr.robberyId) {
+          applyWordleGuess(gr.guess, gr.feedback, gr.guessNum - 1);
+          wordleGuessState.currentRow = gr.guessNum;
+          wordleGuessState.currentCol = 0;
+          wordleGuessState.currentGuess = '';
+          const msgEl = document.getElementById('wordleMessage');
+          if (msgEl) msgEl.textContent = '';
+          // Update keyboard colors
+          for (let i = 0; i < gr.guess.length; i++) {
+            const letter = gr.guess[i];
+            const state = gr.feedback[i];
+            const cur = wordleGuessState.keyStates[letter];
+            if (state === 'correct' || (state === 'present' && cur !== 'correct') || !cur) {
+              wordleGuessState.keyStates[letter] = state;
+            }
+            const keyEl = document.querySelector('.wordle-key[data-letter="' + letter + '"]');
+            if (keyEl) { keyEl.classList.remove('correct','present','absent'); keyEl.classList.add(wordleGuessState.keyStates[letter]); }
+          }
+          if (gr.correct) {
+            if (msgEl) msgEl.textContent = 'Defended! You guessed the word!';
+          } else if (gr.guessNum >= gr.maxGuesses) {
+            if (msgEl) msgEl.textContent = 'Out of guesses...';
+          }
+        }
+        // Rebuild spectator view
+        if (document.getElementById('popup-upgrades').classList.contains('show')) rebuildUpgradesUI();
+        break;
+      }
+
+      case 'robbery_result': {
+        const rr = msg.payload;
+        // Remove from active list
+        activeRobberyList = activeRobberyList.filter(r => r.robberyId !== rr.robberyId);
+
+        // Close Wordle overlay if this was my active defense
+        if (activeWordleRobbery && activeWordleRobbery.robberyId === rr.robberyId) {
+          setTimeout(() => hideWordleOverlay(), 2500);
+        }
+
+        const wordReveal = rr.word ? ' (word: ' + rr.word + ')' : '';
+        const isMe = rr.attackerName === mp.playerName || rr.targetName === mp.playerName;
+        if (!rr.success) {
+          if (rr.reason === 'cooldown') {
+            myRobberyCooldown = rr.spinsLeft || 0;
+            showToast('Robbery on cooldown! ' + rr.spinsLeft + ' spins remaining', 'Robbery');
+          } else if (rr.reason === 'defended') {
+            if (rr.attackerName === mp.playerName) {
+              playSoundFile('robbery_fail.mp3', 0.7);
+              showRobberyResultPopup('\u{1F6E1}\uFE0F', 'Robbery Failed!', rr.targetName + ' guessed your word!' + wordReveal, false);
+            } else if (rr.targetName === mp.playerName) {
+              playSoundFile('word_success.mp3', 0.7);
+              showRobberyResultPopup('\u{1F4AA}', 'Defended!', 'You defended against ' + rr.attackerName + '\'s robbery!', true);
+            }
+            if (!isMe) addRobberyTickerItem(rr.targetName + ' defended against ' + rr.attackerName + wordReveal);
+          } else if (rr.reason === 'broke') {
+            if (isMe) showRobberyResultPopup('\u{1F937}', 'Nothing to Steal', rr.targetName + ' had nothing to steal!' + wordReveal, false);
+            else addRobberyTickerItem(rr.attackerName + ' tried to rob ' + rr.targetName + ' but they were broke');
+          } else if (rr.reason === 'player_gone') {
+            if (isMe) showRobberyResultPopup('\u{1F47B}', 'Target Gone', rr.targetName + ' disappeared!', false);
+          }
+        } else {
+          const amt = '$' + rr.totalStolen.toLocaleString();
+          const stockInfo = rr.stocksStolen && Object.keys(rr.stocksStolen).length > 0
+            ? '<br>Stocks: ' + Object.entries(rr.stocksStolen).map(([s, q]) => q + ' ' + s).join(', ')
+            : '';
+          if (rr.attackerName === mp.playerName) {
+            playSoundFile('word_success.mp3', 0.7);
+            showRobberyResultPopup('\u{1F4B0}', 'Robbery Success!', 'Stole ' + amt + ' from ' + rr.targetName + '!' + stockInfo, true);
+          } else if (rr.targetName === mp.playerName) {
+            playSoundFile('robbery_fail.mp3', 0.7);
+            showRobberyResultPopup('\u{1F6A8}', 'You Were Robbed!', rr.attackerName + ' stole ' + amt + ' from you!' + stockInfo + '<br>' + wordReveal, false);
+          }
+          if (!isMe) addRobberyTickerItem(rr.attackerName + ' robbed ' + rr.targetName + ' for ' + amt);
+        }
+        if (document.getElementById('popup-upgrades').classList.contains('show')) rebuildUpgradesUI();
         break;
       }
 
@@ -4478,6 +6422,8 @@
 
   mainWheel.canvas.addEventListener('mousedown', (e) => {
     if (e.button !== 0 && e.button !== 2) return;
+    // Clear any existing hold to prevent orphaned intervals (e.g. left+right click)
+    stopBetHold();
     betHoldButton = e.button;
     betHoldTicks = 0;
     // Place one bet immediately
@@ -4747,15 +6693,20 @@
         if (t < 1) {
           wheel.animFrame = requestAnimationFrame(animate);
         } else {
+          // Keep the boost offset — the wheel lands where it visually stopped
+          wheel.rotation = finalRot + activeBoostOffset;
+          activeBoostOffset = 0;
+          boostTarget = 0;
+          wheel.draw();
           wheel.spinning = false;
-          // Determine winner (including any boost offset)
+
           const finalPointer = (((-wheel.rotation - Math.PI / 2) % TWO_PI) + TWO_PI) % TWO_PI;
           const winIdx = segmentAtAngle(segments, finalPointer);
           const winner = wheel.names[winIdx];
 
           if (isMain) rebuildHotbar();
 
-          // Report to server (only first report matters)
+          // Report to server with actual visual winner (boost may have changed it)
           mp.send({ type: 'spin_complete', payload: { wheelId, winner } });
         }
       }
@@ -4777,7 +6728,7 @@
     rebuildHotbar();
     refreshBoostPanel();
 
-    // Boosts are reverted by server (boost_reverted messages) so no need to restore weights
+    // Boosts are decayed by server (boosts_decayed messages) so no need to restore weights
 
     const isMain = wheelId === config.activeWheelId;
     const wheelTitle = isMain ? (config.wheels[wheelId]?.title || 'Main Wheel') : (config.wheels[wheelId]?.title || 'Sub-Wheel');
